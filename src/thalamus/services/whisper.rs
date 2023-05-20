@@ -18,67 +18,21 @@ use std::thread;
 use std::thread::Builder;
 use std::io::Write;
 
-// pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Error> {
-    
-    
-    
-//                 // create a params object
-//                 // note that currently the only implemented strategy is Greedy, BeamSearch is a WIP
-//                 // n_past defaults to 0
-//                 let mut params = FullParams::new(thalamusplingStrategy::Greedy { best_of: 1 });
-
-//                 // edit things as needed
-//                 // here we set the number of threads to use to 1
-//                 params.set_n_threads(1);
-//                 // we also enable translation
-//                 params.set_translate(true);
-//                 // and set the language to translate to to english
-//                 params.set_language(Some("en"));
-//                 // we also explicitly disable anything that prints to stdout
-//                 params.set_print_special(false);
-//                 params.set_print_progress(false);
-//                 params.set_print_realtime(false);
-//                 params.set_print_timestamps(false);
-
-//                 // assume we have a buffer of audio data
-//                 // here we'll make a fake one, floating point thalamusples, 32 bit, 16KHz, mono
-//                 let audio_data = vec![0_f32; 16000 * 2];
-
-//                 // now we can run the model
-               
-//                 state.full(params, &audio_data[..]).expect("failed to run model");
-
-//                 // fetch the results
-//                 let num_segments = state
-//                     .full_n_segments()
-//                     .expect("failed to get number of segments");
-//                 for i in 0..num_segments {
-//                     let segment = state.full_get_segment_text(i).expect("failed to get segment");
-//                 }
-
-
-    
-//     return Ok(Response::empty_404());
-// }
-
 
 
 
 // /opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-* -f ./output.wav -otxt
 pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamus::services::Error> {
-    // TODO: Fix 8000 vs 16000
-    // TODO: Check if 8000 or 16000
-    // crate::thalamus::tools::cmd(format!("ffmpeg -i {} -ar 16000 -ac 1 -c:a pcm_s16le {}.16.wav", file_path, file_path));
-    crate::thalamus::tools::cmd(format!("cp {} {}.16.wav", file_path.clone(), file_path.clone()));
 
+    // Force all input to become wav@16khz
+    crate::thalamus::tools::cmd(format!("ffmpeg -i {} -ar 16000 -ac 1 -c:a pcm_s16le {}.16.wav", file_path, file_path));
+
+    // Execute Whisper
     match method {
-        "gpu" => crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper-gpu -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt -t 4", file_path)),
         "quick" => crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt -t 4", file_path)),
         "large" => crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-large.bin -f {}.16.wav -otxt -t 4", file_path)),
         &_ => crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt -t 4", file_path))
     };
-    // Execute Whisper on the GPU
-    
     
     // Copy the results to memory
     let data = std::fs::read_to_string(format!("{}.16.wav.txt", file_path).as_str())?;
@@ -163,10 +117,18 @@ pub fn install() -> std::io::Result<()> {
             pos += bytes_written;
         }
     
-        crate::sam::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
-        match crate::sam::tools::cmd(format!("rm -rf /opt/thalamus/models/models.zip")){
+        crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
+        match crate::thalamus::tools::cmd(format!("rm -rf /opt/thalamus/models/models.zip")){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to remove models.zip"))
+        }
+        match crate::thalamus::tools::cmd(format!("mv /opt/thalamus/models/models/* /opt/thalamus/models/")){
+            Ok(_) => (),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to move model data"))
+        }
+        match crate::thalamus::tools::cmd(format!("rm -rf /opt/thalamus/models/models/")){
+            Ok(_) => (),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to cleanup models data"))
         }
     }
 
@@ -190,10 +152,18 @@ pub fn install() -> std::io::Result<()> {
             pos += bytes_written;
         }
     
-        crate::sam::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
-        match crate::sam::tools::cmd(format!("rm -rf /opt/thalamus/models/models.zip")){
+        crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
+        match crate::thalamus::tools::cmd(format!("rm -rf /opt/thalamus/models/models.zip")){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to remove models.zip"))
+        }
+        match crate::thalamus::tools::cmd(format!("mv /opt/thalamus/models/models/* /opt/thalamus/models/")){
+            Ok(_) => (),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to move model data"))
+        }
+        match crate::thalamus::tools::cmd(format!("rm -rf /opt/thalamus/models/models/")){
+            Ok(_) => (),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to cleanup models data"))
         }
     }
 
