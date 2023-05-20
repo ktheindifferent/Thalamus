@@ -104,7 +104,7 @@ pub fn extract_zip(zip_path: &str, extract_path: String) -> i32 {
     let fname = std::path::Path::new(zip_path);
     let file = fs::File::open(&fname).unwrap();
 
-    let mut archivew = zip::ZipArchive::new(file);
+    let archivew = zip::ZipArchive::new(file);
 
     match archivew{
         Ok(mut archive) => {

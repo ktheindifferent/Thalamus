@@ -7,9 +7,9 @@
 // Developed by Caleb Mitchell Smith (PixelCoda)
 // Licensed under GPLv3....see LICENSE file.
 
-use std::path::Path;
-use std::fs::File;
-use std::io::Write;
+
+
+
 
 // TODO: Compile whisper for raspi and patch installer
 pub fn install() -> std::io::Result<()> {

@@ -17,6 +17,7 @@ error_chain! {
         TchError(tch::TchError);
         PostError(rouille::input::post::PostError);
         HttpRequest(reqwest::Error);
+        InternalToolsError(crate::thalamus::tools::Error);
         // Postgres(postgres::Error);
         // PostError(rouille::input::post::PostError);
         // RustTubeError(rustube::Error);

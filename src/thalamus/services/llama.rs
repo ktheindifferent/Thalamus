@@ -10,6 +10,6 @@
 use rouille::Request;
 use rouille::Response;
 
-pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Error> {
+pub fn handle(_request: &Request) -> Result<Response, crate::thalamus::http::Error> {
     return Ok(Response::empty_404());
 }

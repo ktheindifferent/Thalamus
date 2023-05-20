@@ -21,13 +21,13 @@ use std::fs::File;
 use std::io::{Write};
 use titlecase::titlecase;
 use serde::{Serialize, Deserialize};
-use std::process::{Command, Stdio};
+
 use rouille::post_input;
 use rouille::Request;
 use rouille::Response;
 use std::thread;
 
-use std::io::BufReader;
+
 use std::io::prelude::*;
 
 const STYLE_WEIGHT: f64 = 1e6;
@@ -84,7 +84,7 @@ fn style_loss(m1: &Tensor, m2: &Tensor) -> Tensor {
     gram_matrix(m1).mse_loss(&gram_matrix(m2), tch::Reduction::Mean)
 }
 
-pub fn run(style_img: &str, content_img: &str, oid: String, style: String) -> Result<(), crate::thalamus::services::Error> {
+pub fn run(style_img: &str, content_img: &str, _oid: String, _style: String) -> Result<(), crate::thalamus::services::Error> {
 
     log::info!("NST");
     log::info!("style image: {:?}", style_img);
@@ -161,7 +161,7 @@ pub fn styles() -> Result<Vec<Style>, crate::thalamus::services::Error> {
 
         let pth = path.unwrap().path().display().to_string();
 
-        let mut style = Style{
+        let style = Style{
             name: titlecase(&format!("{}", pth.clone()).replace("/opt/sam/models/nst/", "").replace(".jpg", "").replace("_", " ")),
             file_path: pth.clone(),
         };

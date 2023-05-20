@@ -15,7 +15,7 @@ use std::fs::File;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 use std::thread;
-use std::thread::Builder;
+
 use std::io::Write;
 
 
@@ -25,13 +25,16 @@ use std::io::Write;
 pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamus::services::Error> {
 
     // Force all input to become wav@16khz
-    crate::thalamus::tools::cmd(format!("ffmpeg -i {} -ar 16000 -ac 1 -c:a pcm_s16le {}.16.wav", file_path, file_path));
+    match crate::thalamus::tools::cmd(format!("ffmpeg -i {} -ar 16000 -ac 1 -c:a pcm_s16le {}.16.wav", file_path, file_path)){
+        Ok(_) => (),
+        Err(e) => return Err(crate::thalamus::services::Error::from(e))
+    };
 
     // Execute Whisper
     match method {
-        "quick" => crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt -t 4", file_path)),
-        "large" => crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-large.bin -f {}.16.wav -otxt -t 4", file_path)),
-        &_ => crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt -t 4", file_path))
+        "quick" => crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt -t 4", file_path))?,
+        "large" => crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-large.bin -f {}.16.wav -otxt -t 4", file_path))?,
+        &_ => crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt -t 4", file_path))?
     };
     
     // Copy the results to memory
@@ -211,85 +214,11 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
     if request.url() == "/api/services/stt" {
 
 
-        let data = post_input!(request, {
-            audio_data: rouille::input::post::BufferedFile,
-        })?;
-
-
-        let tmp_file_path = format!("/opt/thalamus/tmp/{}.wav", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64);
-
-        let mut file = File::create(tmp_file_path.clone()).unwrap();
-        file.write_all(&data.audio_data.data).unwrap();
-
-
-        let mut idk = upload(tmp_file_path).unwrap();
-
-        // TODO - Spawn thread to store audio/text files as an observation.
-        // TODO - Spawn sprec thread to identify speaker.
-        // TODO - Spawn thread to process thalamus brain.py. (maybe, might execute in js runtime instead)
-        
-        
-        // If idk.text contains "thalamus" then redirect request to io api
-        if idk.text.contains("thalamus") {
-            return Ok(Response::redirect_303(format!("/api/io?input={}", idk.text.replace("thalamus ", ""))));
-        }
-
-        idk.response_type = Some(format!("stt"));
-
-        return Ok(Response::json(&idk));
+      
     }
 
 
 
     
     return Ok(Response::empty_404());
-}
-
-pub fn init(){
-
-    let stt_thread = thread::Builder::new().name("stt".to_string()).spawn(move || {
-        crate::thalamus::tools::cmd(format!("docker run -p 8002:8000 p0indexter/stt"));
-    });
-    match stt_thread{
-        Ok(_) => {
-            log::info!("stt server started successfully");
-        },
-        Err(e) => {
-            log::error!("failed to initialize stt server: {}", e);
-        }
-    }
-}
-
-
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct STTReply {
-    pub text: String,
-    pub time: f64,
-    pub response_type: Option<String>,
-}
-
-
-// TODO - Use foundation stt public server first, fallback to local server after 2 seconds for offline avaliablity
-// TODO - Find another method besided multipart....too many dependencies
-pub fn upload(tmp_file_path: String) -> Result<STTReply, crate::thalamus::services::Error> {
-
-    // return Ok(STTReply{
-    //     text: String::new(),
-    //     time: 0.0,
-    //     response_type: None,
-    // });
-
-    let form = reqwest::blocking::multipart::Form::new().file("speech", tmp_file_path.as_str())?;
-
-
-    let client = reqwest::blocking::Client::new();
-
-    Ok(client.post(format!("https://stt.openthalamus.foundation/api/v1/stt"))
-    .multipart(form)
-    .send()?.json()?)
-
-    // Ok(client.post(format!("http://localhost:8002/api/v1/stt"))
-    //     .multipart(form)
-    //     .send()?.json()?)
 }

@@ -11,7 +11,7 @@
 extern crate rouille;
 
 
-use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
+
 pub mod thalamus;
 
 

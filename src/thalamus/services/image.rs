@@ -9,11 +9,11 @@
 pub mod nst;
 pub mod srgan;
 
-use std::fs;
-use std::fs::File;
-use std::io::{Write};
 
-use rouille::post_input;
+
+
+
+
 use rouille::Request;
 use rouille::Response;
 
@@ -33,6 +33,6 @@ pub fn install() -> std::io::Result<()> {
 }
 
 
-pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Error> {
+pub fn handle(_request: &Request) -> Result<Response, crate::thalamus::http::Error> {
     return Ok(Response::empty_404());
 }
