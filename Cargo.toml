@@ -9,7 +9,6 @@ edition = "2021"
 rand = "0.8.4"
 serde = { version = "1.0.133", features = ["derive"] }
 log = "0.4.14"
-whisper-rs = "0.7.0"
 rouille = "3.6.2"
 error-chain = "0.12.4"
 opencl3 = "0.9.3"
