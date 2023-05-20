@@ -61,8 +61,11 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
             let oid = input.image_id.replace("oid:", "");
             if Path::new(format!("/opt/sam/files/{}", oid).as_str()).exists(){
                 thread::Builder::new().name("nst_thread".to_string()).spawn(move || {
-                    run(&selected_style, format!("/opt/sam/files/{}", oid).as_str(), oid, input.nst_style);
-                });
+                    match run(&selected_style, format!("/opt/sam/files/{}", oid).as_str(), oid, input.nst_style){
+                        Ok(_) => (),
+                        Err(e) => log::error!("{}", e),
+                    }
+                })?;
             }
         }
 
@@ -130,7 +133,7 @@ pub fn run(style_img: &str, content_img: &str, _oid: String, _style: String) -> 
 
             let mut file = File::open(format!("/opt/sam/files/out{}.jpg", step_idx))?;
             let mut buf = Vec::new();
-            file.read_to_end(&mut buf);
+            file.read_to_end(&mut buf)?;
 
             // let mut file = crate::sam::memory::FileStorage::new();
             // file.file_name = format!("{}-{}-{}.jpg", oid, style, step_idx);
@@ -173,7 +176,7 @@ pub fn styles() -> Result<Vec<Style>, crate::thalamus::services::Error> {
 
 pub fn install() -> Result<(), crate::thalamus::services::Error> {
     if !Path::new("/opt/sam/models/vgg16.ot").exists(){
-        crate::thalamus::tools::cmd(format!("wget -O /opt/sam/models/vgg16.ot https://github.com/LaurentMazare/tch-rs/releases/download/mw/vgg16.ot"));
+        crate::thalamus::tools::cmd(format!("wget -O /opt/sam/models/vgg16.ot https://github.com/LaurentMazare/tch-rs/releases/download/mw/vgg16.ot"))?;
     }
 
     let data = include_bytes!("../../../../packages/nst/fra_angelico.jpg");
