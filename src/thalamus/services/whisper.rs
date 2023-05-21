@@ -11,6 +11,7 @@ use rouille::Request;
 use rouille::Response;
 use rouille::input::post::BufferedFile;
 use rouille::post_input;
+use serde::{Serialize, Deserialize};
 
 use std::path::Path;
 use std::fs::File;
@@ -210,7 +211,12 @@ pub fn install() -> std::io::Result<()> {
 
 
 
-
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct STTReply {
+    pub text: String,
+    pub time: f64,
+    pub response_type: Option<String>,
+}
 
 
 
@@ -221,17 +227,25 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
     
     if request.url() == "/api/services/whisper" {
 
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+
         let input = post_input!(request, {
             speech: BufferedFile,
         })?;
 
-        let tmp_file_path = format!("/opt/thalamus/tmp/{}.wav", SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64);
+        let tmp_file_path = format!("/opt/thalamus/tmp/{}.wav", timestamp.clone());
         let mut file = File::create(tmp_file_path.clone())?;
         file.write_all(&input.speech.data)?;
 
         let stt = whisper(tmp_file_path, "quick")?;
 
-        return Ok(Response::text(stt));
+        let reply = STTReply{
+            text: stt,
+            time: timestamp as f64,
+            response_type: None
+        };
+
+        return Ok(Response::json(&reply));
       
     }
 
