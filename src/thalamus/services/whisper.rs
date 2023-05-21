@@ -219,7 +219,7 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
    
 
     
-    if request.url() == "/api/services/stt" {
+    if request.url() == "/api/services/whisper" {
 
         let input = post_input!(request, {
             speech: BufferedFile,
