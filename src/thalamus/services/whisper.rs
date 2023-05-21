@@ -9,11 +9,13 @@
 
 use rouille::Request;
 use rouille::Response;
+use rouille::input::post::BufferedFile;
+use rouille::post_input;
 
 use std::path::Path;
 use std::fs::File;
 
-
+use std::time::{SystemTime, UNIX_EPOCH};
 
 
 use std::io::Write;
@@ -168,6 +170,12 @@ pub fn install() -> std::io::Result<()> {
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to cleanup models data"))
         }
+
+        // Configure Miniconda
+        match crate::thalamus::tools::cmd(format!("conda activate py310-whisper && pip install ane_transformers && pip install openai-whisper && pip install coremltools && /opt/thalamus/models/generate-coreml-model.sh tiny && /opt/thalamus/models/generate-coreml-model.sh base && /opt/thalamus/models/generate-coreml-model.sh medium && /opt/thalamus/models/generate-coreml-model.sh large")){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install homebrew")),
+        }
     }
 
     let data = include_bytes!("../../../fonts/courier.ttf");
@@ -213,7 +221,17 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
     
     if request.url() == "/api/services/stt" {
 
+        let input = post_input!(request, {
+            speech: BufferedFile,
+        })?;
 
+        let tmp_file_path = format!("/opt/thalamus/tmp/{}.wav", SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64);
+        let mut file = File::create(tmp_file_path.clone())?;
+        file.write_all(&input.speech.data)?;
+
+        let stt = whisper(tmp_file_path, "quick")?;
+
+        return Ok(Response::text(stt));
       
     }
 

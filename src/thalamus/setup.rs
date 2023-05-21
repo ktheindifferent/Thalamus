@@ -52,9 +52,23 @@ pub fn install() -> std::io::Result<()> {
 
    // Apple M1/M2
    #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
+
+        // Install Homebrew
         match crate::thalamus::tools::cmd(format!("/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")){
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install homebrew")),
+        }
+
+        // Install Miniconda
+        match crate::thalamus::tools::cmd(format!("brew install miniconda")){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install miniconda")),
+        }
+
+        // Configure Miniconda
+        match crate::thalamus::tools::cmd(format!("conda create -n py310-whisper python=3.10 -y")){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to configure miniconda")),
         }
    }
 
