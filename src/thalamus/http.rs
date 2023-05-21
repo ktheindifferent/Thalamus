@@ -59,20 +59,6 @@ pub fn handle(request: &Request) -> Result<Response> {
         return Ok(crate::thalamus::services::llama::handle(request)?);
     }
 
-    if request.url().contains("/is_cuda"){
-        let device = tch::Cuda::is_available();
-        return Ok(Response::text(device.to_string()));
-    }
-
-    if request.url().contains("/is_cuda2"){
-        let device = tch::Cuda::cudnn_is_available();
-        return Ok(Response::text(device.to_string()));
-    }
-
-    if request.url().contains("/cudac"){
-        let device = tch::Cuda::device_count();
-        return Ok(Response::text(device.to_string()));
-    }
 
     return Ok(Response::empty_404());
 }

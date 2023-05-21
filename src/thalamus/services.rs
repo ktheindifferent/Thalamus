@@ -14,7 +14,6 @@ use error_chain::error_chain;
 error_chain! {
     foreign_links {
         Io(std::io::Error);
-        TchError(tch::TchError);
         PostError(rouille::input::post::PostError);
         HttpRequest(reqwest::Error);
         InternalToolsError(crate::thalamus::tools::Error);
