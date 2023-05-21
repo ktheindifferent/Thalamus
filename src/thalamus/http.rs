@@ -58,7 +58,7 @@ pub fn handle(request: &Request) -> Result<Response> {
     }
 
     if request.url().contains("/api/services/whisper"){
-        return Ok(crate::thalamus::services::llama::handle(request)?);
+        return Ok(crate::thalamus::services::whisper::handle(request)?);
     }
 
 
