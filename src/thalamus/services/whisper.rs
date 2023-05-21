@@ -245,6 +245,8 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
             response_type: None
         };
 
+        log::info!("{}", reply.text.clone());
+
         return Ok(Response::json(&reply));
       
     }
