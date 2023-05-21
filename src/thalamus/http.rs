@@ -34,6 +34,7 @@ pub fn init(){
         
             match crate::thalamus::http::handle(request){
                 Ok(request) => {
+                    log::info!("{:?}", request);
                     return request;
                 },
                 Err(err) => {
