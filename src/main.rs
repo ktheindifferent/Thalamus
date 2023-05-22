@@ -26,7 +26,7 @@ fn main() {
     }
 
 
-    // simple_logger::SimpleLogger::new().with_colors(true).init().unwrap();
+    simple_logger::SimpleLogger::new().with_colors(true).init().unwrap();
     log::info!("VERSION: {:?}", VERSION);
     sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
     
