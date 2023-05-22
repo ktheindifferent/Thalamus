@@ -46,7 +46,7 @@ pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamu
 
     // Cleanup
     thread::spawn(move || {
-        crate::thalamus::tools::cmd(format!("rm {}*", file_path).as_str())?;
+        crate::thalamus::tools::cmd(format!("rm {}*", file_path).as_str()).unwrap();
     });
 
     // Return the results
