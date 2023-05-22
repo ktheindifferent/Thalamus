@@ -17,6 +17,7 @@ use std::path::Path;
 use std::fs::File;
 
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::thread;
 
 
 use std::io::Write;
@@ -44,8 +45,9 @@ pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamu
     let data = std::fs::read_to_string(format!("{}.16.wav.txt", file_path).as_str())?;
 
     // Cleanup
-    std::fs::remove_file(format!("{}.16.wav", file_path).as_str())?;
-    std::fs::remove_file(format!("{}.16.wav.txt", file_path).as_str())?;
+    thread::spawn(move || {
+        crate::thalamus::tools::cmd(format!("rm {}*", file_path).as_str())?;
+    });
 
     // Return the results
     return Ok(data);
