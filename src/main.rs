@@ -20,7 +20,7 @@ const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 fn main() {
 
-    let args: Vec<_> = env::args().collect();
+    let args: Vec<_> = std::env::args().collect();
     if args.len() > 1 {
         println!("The first argument is {}", args[1]);
     }
