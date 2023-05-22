@@ -24,6 +24,7 @@ noise-gate = { git = "https://github.com/Michael-F-Bryan/noise-gate.git", versio
 zip = "0.5.13"
 shuteye = "0.3.3"
 sudo = "0.5"
+clearscreen = "2.0.1"
 
 [features]
 default = ["reqwest/default-tls", "trust-dns-resolver/dns-over-native-tls"]

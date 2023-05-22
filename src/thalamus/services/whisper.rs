@@ -36,9 +36,9 @@ pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamu
 
     // Execute Whisper
     match method {
-        "quick" => println!("thalamus_cmd: {}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?),
-        "large" => println!("thalamus_cmd: {}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-large.bin -f {}.16.wav -otxt", file_path))?),
-        &_ => println!("thalamus_cmd: {}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?)
+        "quick" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?),
+        "large" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-large.bin -f {}.16.wav -otxt", file_path))?),
+        &_ => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?)
     };
     
     // Copy the results to memory

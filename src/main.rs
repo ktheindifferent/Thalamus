@@ -10,8 +10,6 @@
 
 extern crate rouille;
 
-
-
 pub mod thalamus;
 
 // store application version as a const
@@ -20,23 +18,28 @@ const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 fn main() {
 
-    let args: Vec<_> = std::env::args().collect();
-    if args.len() > 2 {
-        simple_logger::SimpleLogger::new().with_colors(true).init().unwrap();
-    }
+    // cls
+    clearscreen::clear().unwrap();
 
+    // Print Application Art and Version Information
+    println!("████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ ");
+    println!("   ██    ██   ██ ██   ██ ██      ██   ██ ████  ████ ██    ██ ██      ");
+    println!("   ██    ███████ ███████ ██      ███████ ██ ████ ██ ██    ██ ███████ ");
+    println!("   ██    ██   ██ ██   ██ ██      ██   ██ ██  ██  ██ ██    ██      ██ ");
+    println!("   ██    ██   ██ ██   ██ ███████ ██   ██ ██      ██  ██████  ███████ ");
+    println!("Copyright 2021-2023 The Open Sam Foundation (OSF)");
+    match VERSION {
+        Some(v) => println!("Version: {}", v),
+        None => println!("Version: Unknown"),
+    };
 
-    
-    log::info!("VERSION: {:?}", VERSION);
+    simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Warn).with_timestamps(true).init().unwrap();
     sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
     
     match crate::thalamus::setup::install(){
-        Ok(_) => println!("Installed thalamus"),
-        Err(e) => println!("Error installing thalamus: {}", e),
+        Ok(_) => log::info!("Installed thalamus"),
+        Err(e) => log::error!("Error installing thalamus: {}", e),
     };
-
-    // let mut ctx = WhisperContext::new("/opt/whispers/models/ggml-base.en.bin").expect("failed to load model");
-    // let mut state = ctx.create_state().expect("failed to create state");
 
     crate::thalamus::http::init();
 
