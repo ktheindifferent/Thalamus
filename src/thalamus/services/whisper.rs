@@ -42,7 +42,7 @@ pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamu
     };
     
     // Copy the results to memory
-    let data = std::fs::read_to_string(format!("{}.16.wav.txt", file_path).as_str())?;
+    let data = std::fs::read_to_string(format!("{}.16.wav.txt", file_path).as_str()).unwrap();
 
     // Cleanup
     thread::spawn(move || {
