@@ -29,7 +29,7 @@ use std::io::Write;
 pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamus::services::Error> {
 
     // Force all input to become wav@16khz
-    match crate::thalamus::tools::wav_to_16000(file_path){
+    match crate::thalamus::tools::wav_to_16000(file_path.clone()){
         Ok(_) => (),
         Err(e) => return Err(crate::thalamus::services::Error::from(e))
     };
