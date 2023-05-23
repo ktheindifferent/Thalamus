@@ -88,7 +88,7 @@ pub fn idfk() -> Result<String>{
         .wait_with_output()
         .expect("failed to wait on child");
 
-    return String::from_utf8_lossy(&output.stdout).to_string();
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());
 
 
     // let cmd = Command::new("sudo")
