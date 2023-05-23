@@ -80,7 +80,11 @@ pub fn bash(command: String) -> Result<String>{
 pub fn whisper(model: &str, file_path: &str) -> Result<String>{
     
     
-    let child = Command::new(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-{}.bin -f {}.16.wav", model, file_path))
+    let child = Command::new("/opt/thalamus/bin/whisper")
+    .arg("-m")
+    .arg(format!("/opt/thalamus/models/ggml-{}.bin", model))
+    .arg("-f")
+    .arg(format!("{}.16.wav", file_path))
     .arg("-otxt")
     .stdout(Stdio::piped())
     .spawn()
@@ -95,9 +99,17 @@ pub fn whisper(model: &str, file_path: &str) -> Result<String>{
     
 }
 
-pub fn ffmpeg(command: String) -> Result<String>{
+pub fn wav_to_16000(input: String) -> Result<String>{
     let child = Command::new("/opt/homebrew/bin/ffmpeg")
-    .arg(command)
+    .arg("-i")
+    .arg(format!("{}", input))
+    .arg("-ar")
+    .arg("16000")
+    .arg("-ac")
+    .arg("1")
+    .arg("-c:a")
+    .arg("pcm_s16le")
+    .arg(format!("{}.16.wav", input))
     .stdout(Stdio::piped())
     .spawn()
     .expect("failed to execute child");
