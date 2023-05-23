@@ -198,10 +198,12 @@ pub fn install() -> std::io::Result<()> {
 
         // Configure Miniconda and Generate ML models if necessary
         if !Path::new("/opt/thalamus/models/coreml-encoder-tiny.mlpackage").exists() || !Path::new("/opt/thalamus/models/coreml-encoder-large.mlpackage").exists(){
+            log::warn!("CoreML Encoders are missing...please be patient while they are being generated. This may take a while. Future launches will be faster.")
             match crate::thalamus::tools::cmd(format!("/opt/thalamus/models/coreml.sh")){
                 Ok(_) => {},
                 Err(_) => {},
-            }    
+            }  
+            log::warn!("CoreML encoders have been generated. Please check the log for more information.");  
         }
     }
 
