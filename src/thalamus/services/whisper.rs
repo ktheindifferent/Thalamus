@@ -36,7 +36,9 @@ pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamu
 
     // Execute Whisper
     match method {
-        "quick" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?),
+        "tiny" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?),
+        "base" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-base.bin -f {}.16.wav -otxt", file_path))?),
+        "medium" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-medium.bin -f {}.16.wav -otxt", file_path))?),
         "large" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-large.bin -f {}.16.wav -otxt", file_path))?),
         &_ => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?)
     };
@@ -175,10 +177,16 @@ pub fn install() -> std::io::Result<()> {
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to cleanup models data"))
         }
 
-        // Configure Miniconda
-        match crate::thalamus::tools::cmd(format!("conda activate py310-whisper && pip install ane_transformers && pip install openai-whisper && pip install coremltools && /opt/thalamus/models/generate-coreml-model.sh tiny && /opt/thalamus/models/generate-coreml-model.sh base && /opt/thalamus/models/generate-coreml-model.sh medium && /opt/thalamus/models/generate-coreml-model.sh large")){
+        // Fix permissions
+        match crate::thalamus::tools::cmd(format!("chmod -R 777 /opt/thalamus/models")){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install homebrew")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod /opt/thalamus")),
+        }
+
+        // Configure Miniconda and Generate ML models
+        match crate::thalamus::tools::decmd(format!("conda activate py310-whisper && pip install ane_transformers && pip install openai-whisper && pip install coremltools && python3 -m pip install urllib3==1.26.6 && /opt/thalamus/models/generate-coreml-model.sh tiny && /opt/thalamus/models/generate-coreml-model.sh base && /opt/thalamus/models/generate-coreml-model.sh medium && /opt/thalamus/models/generate-coreml-model.sh large")){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to generate coreml models")),
         }
     }
 
@@ -234,13 +242,14 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
 
         let input = post_input!(request, {
             speech: BufferedFile,
+            method: String
         })?;
 
         let tmp_file_path = format!("/opt/thalamus/tmp/{}.wav", timestamp.clone());
         let mut file = File::create(tmp_file_path.clone())?;
         file.write_all(&input.speech.data)?;
 
-        let stt = whisper(tmp_file_path, "quick")?;
+        let stt = whisper(tmp_file_path, input.method.as_str())?;
 
         let reply = STTReply{
             text: stt,

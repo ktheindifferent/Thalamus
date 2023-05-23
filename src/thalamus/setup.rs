@@ -24,9 +24,9 @@ pub fn install() -> std::io::Result<()> {
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus directory")),
     }
 
-    match crate::thalamus::tools::cmd(format!("chown 1000 -R /opt/thalamus")){
+    match crate::thalamus::tools::cmd(format!("chmod -R 777 /opt/thalamus")){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chown /opt/thalamus")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod /opt/thalamus")),
     }
 
     match crate::thalamus::tools::cmd(format!("mkdir /opt/thalamus/models")){
@@ -65,8 +65,20 @@ pub fn install() -> std::io::Result<()> {
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install miniconda")),
         }
 
+        // Install openssl@1.1
+        match crate::thalamus::tools::cmd(format!("brew install openssl@1.1")){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1")),
+        }
+
+        // Install ffmpeg
+        match crate::thalamus::tools::cmd(format!("brew install ffmpeg")){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ffmpeg")),
+        }
+
         // Configure Miniconda
-        match crate::thalamus::tools::cmd(format!("conda create -n py310-whisper python=3.10 -y")){
+        match crate::thalamus::tools::decmd(format!("conda init \"$(basename \"${SHELL}\")\" && conda create -n py310-whisper python=3.10 -y")){
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to configure miniconda")),
         }

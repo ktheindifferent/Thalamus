@@ -66,6 +66,27 @@ pub fn cmd(command: String) -> Result<String>{
     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 }
 
+// 
+pub fn decmd(command: String) -> Result<String>{
+    let cmd = Command::new("sh")
+    .arg("-c")
+    .arg("sudo -u $USER")
+    .arg(command)
+    .output()?;
+    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+}
+
+pub fn subdecmd(command: String) -> Result<String>{
+    let cmd = Command::new("sh")
+    .arg("-c")
+    .arg(format!("sudo -u $USER bash -c '{}'", command))
+    .output()?;
+    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+}
+
+// subshell
+// sudo -u USERNAME bash -c 'whoami;echo $USER'
+
 // ffmpeg -i samples/ruler.mp3 samples/ruler.wav
 
 // ffmpeg -i samples/ruler.wav -ar 16000 -ac 1 -c:a pcm_s16le samples/ruler.16.wav
