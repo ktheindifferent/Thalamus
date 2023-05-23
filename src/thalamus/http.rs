@@ -28,24 +28,15 @@ error_chain! {
     }
 }
 
-pub fn init(){
-    thread::spawn(move || {
-        rouille::start_server(format!("0.0.0.0:8050").as_str(), move |request| {
+// pub fn init(){
+//     thread::spawn(move || {
+//         rouille::start_server(format!("0.0.0.0:8050").as_str(), move |request| {
         
-            match crate::thalamus::http::handle(request){
-                Ok(request) => {
-                    log::info!("{:?}", request);
-                    return request;
-                },
-                Err(err) => {
-                    log::error!("HTTP_ERROR: {}", err);
-                    return Response::empty_404();
-                }
-            }
+            
 
-        });
-    });
-}
+//         });
+//     });
+// }
 
 
 

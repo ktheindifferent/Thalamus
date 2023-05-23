@@ -7,6 +7,8 @@
 // Developed by Caleb Mitchell Smith (PixelCoda)
 // Licensed under GPLv3....see LICENSE file.
 
+use rouille::Server;
+use rouille::Response;
 
 extern crate rouille;
 
@@ -41,9 +43,23 @@ fn main() {
         Err(e) => log::error!("Error installing thalamus: {}", e),
     };
 
-    crate::thalamus::http::init();
 
-    loop {}
+    let server = Server::new("0.0.0.0:8050", |request| {
+        match crate::thalamus::http::handle(request){
+            Ok(request) => {
+                log::info!("{:?}", request);
+                return request;
+            },
+            Err(err) => {
+                log::error!("HTTP_ERROR: {}", err);
+                return Response::empty_404();
+            }
+        }
+    }).unwrap();
+
+    loop {
+        server.poll_timeout(std::time::Duration::from_millis(100));
+    }
 }
 
 
