@@ -78,12 +78,23 @@ pub fn bash(command: String) -> Result<String>{
 
 
 pub fn whisper(model: &str, file_path: &str) -> Result<String>{
-    let cmd = Command::new("bash -c /opt/thalamus/bin/whisper")
-    .arg(format!("-m /opt/thalamus/models/ggml-{}.bin", model))
-    .arg(format!("-f {}.16.wav", file_path))
-    .arg("-otxt")
-    .output()?;
-    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+    
+    
+    let child = Command::new("/opt/thalamus/bin/whisper")
+    .arg(format!(" -m /opt/thalamus/models/ggml-{}.bin", model))
+    .arg(format!(" -f {}.16.wav", file_path))
+    .arg(" -otxt")
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+    
 }
 
 pub fn ffmpeg(command: String) -> Result<String>{
