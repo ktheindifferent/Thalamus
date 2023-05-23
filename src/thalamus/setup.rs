@@ -77,6 +77,12 @@ pub fn install() -> std::io::Result<()> {
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ffmpeg")),
         }
 
+        // Uninstall python
+        match crate::thalamus::tools::cmd(format!("brew uninstall python")){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to uninstall python")),
+        }
+
         // Configure Miniconda
         match crate::thalamus::tools::decmd(String::from("conda init \"$(basename \"${SHELL}\")\" && conda create -n py310-whisper python=3.10 -y")){
             Ok(_) => {},
