@@ -80,9 +80,7 @@ pub fn bash(command: String) -> Result<String>{
 pub fn whisper(model: &str, file_path: &str) -> Result<String>{
     
     
-    let child = Command::new("/opt/thalamus/bin/whisper")
-    .arg(format!("-m /opt/thalamus/models/ggml-{}.bin", model))
-    .arg(format!("-f {}.16.wav", file_path))
+    let child = Command::new(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-{}.bin -f {}.16.wav", model, file_path))
     .arg("-otxt")
     .stdout(Stdio::piped())
     .spawn()
