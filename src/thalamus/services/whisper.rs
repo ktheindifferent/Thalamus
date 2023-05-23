@@ -162,6 +162,15 @@ pub fn install() -> std::io::Result<()> {
             let bytes_written = buffer.write(&data[pos..])?;
             pos += bytes_written;
         }
+
+        log::info!("Unpacking coreml.sh...");
+        let data = include_bytes!("../../../packages/whisper/coreml.sh");
+        let mut pos = 0;
+        let mut buffer = File::create("/opt/thalamus/models/coreml.sh")?;
+        while pos < data.len() {
+            let bytes_written = buffer.write(&data[pos..])?;
+            pos += bytes_written;
+        }
     
         crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
         match crate::thalamus::tools::cmd(format!("rm -rf /opt/thalamus/models/models.zip")){
@@ -184,7 +193,7 @@ pub fn install() -> std::io::Result<()> {
         }
 
         // Configure Miniconda and Generate ML models
-        match crate::thalamus::tools::subdecmd(format!("conda activate py310-whisper && pip install ane_transformers && pip install openai-whisper && pip install coremltools && python3 -m pip install urllib3==1.26.6 && /opt/thalamus/models/generate-coreml-model.sh tiny && /opt/thalamus/models/generate-coreml-model.sh base && /opt/thalamus/models/generate-coreml-model.sh medium && /opt/thalamus/models/generate-coreml-model.sh large")){
+        match crate::thalamus::tools::decmd(format!("/opt/thalamus/models/coreml.sh")){
             Ok(x) => {
                 println!("{:?}", x);
             },
