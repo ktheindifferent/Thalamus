@@ -83,7 +83,7 @@ pub fn idfk() -> Result<String>{
     }
 
 
-    let cmd = Command::new("sh")
+    let child = Command::new("sh")
     .arg("-c")
     .arg(format!("/opt/thalamus/models/coreml.sh"))
     .stdout(Stdio::piped())
