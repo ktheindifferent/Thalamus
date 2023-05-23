@@ -66,6 +66,15 @@ pub fn cmd(command: String) -> Result<String>{
     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 }
 
+
+pub fn decmd2(command: String) -> Result<String>{
+    let cmd = Command::new("sudo")
+    .arg("-u $USER")
+    .arg(command)
+    .output()?;
+    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+}
+
 // 
 pub fn decmd(command: String) -> Result<String>{
     let cmd = Command::new("sh")
