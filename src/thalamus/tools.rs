@@ -64,8 +64,8 @@ pub fn cmd(command: String) -> Result<String>{
     let cmd = Command::new("sh")
     .arg("-c")
     .arg(command.clone())
-    .output()?;
-    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+    .spawn()?;
+    return Ok(format!("{:?}", cmd.wait_with_output()));
 }
 
 pub fn touch(path: String) -> Result<()>{
