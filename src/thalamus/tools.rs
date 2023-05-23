@@ -77,9 +77,9 @@ pub fn decmd2(command: String) -> Result<String>{
 
 // 
 pub fn decmd(command: String) -> Result<String>{
-    let cmd = Command::new("sh")
+    let cmd = Command::new("bash")
     .arg("-c")
-    .arg("sudo -u $USER")
+    .arg("sudo -u sam")
     .arg(command)
     .output()?;
     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
