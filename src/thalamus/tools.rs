@@ -77,8 +77,13 @@ pub fn decmd2(command: String) -> Result<String>{
 
 pub fn idfk() -> Result<String>{
 
+    match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/models/coreml.sh")){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/fonts directory")),
+    }
 
-    let child = Command::new("/usr/bin/sudo -u $USER bash -c")
+
+    let child = Command::new("/usr/bin/sudo -u $USER sh -c")
     .arg("/opt/thalamus/models/coreml.sh")
     .stdout(Stdio::piped())
     .spawn()
