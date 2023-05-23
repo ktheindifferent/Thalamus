@@ -186,7 +186,7 @@ pub fn install() -> std::io::Result<()> {
         // Configure Miniconda and Generate ML models
         match crate::thalamus::tools::decmd2(format!("conda activate py310-whisper && pip install ane_transformers && pip install openai-whisper && pip install coremltools && python3 -m pip install urllib3==1.26.6 && /opt/thalamus/models/generate-coreml-model.sh tiny && /opt/thalamus/models/generate-coreml-model.sh base && /opt/thalamus/models/generate-coreml-model.sh medium && /opt/thalamus/models/generate-coreml-model.sh large")){
             Ok(x) => {
-                println(x);
+                println!("{:?}", x);
             },
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to generate coreml models")),
         }
