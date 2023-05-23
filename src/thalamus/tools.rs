@@ -98,7 +98,7 @@ pub fn ffmpeg(command: String) -> Result<String>{
     .wait_with_output()
     .expect("failed to wait on child");
 
-    return String::from_utf8_lossy(&output.stdout).to_string();
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());
 }
 
 
