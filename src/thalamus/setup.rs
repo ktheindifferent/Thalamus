@@ -58,7 +58,7 @@ pub fn install() -> std::io::Result<()> {
         // Install Homebrew
         match crate::thalamus::tools::cmd(format!("/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")){
             Ok(x) => {
-                println(x);
+                println!(x);
             },
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install homebrew")),
         }
@@ -66,7 +66,7 @@ pub fn install() -> std::io::Result<()> {
         // Install Miniconda
         match crate::thalamus::tools::cmd(format!("brew install miniconda")){
             Ok(x) => {
-                println(x);
+                println!(x);
             },
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install miniconda")),
         }
@@ -74,7 +74,7 @@ pub fn install() -> std::io::Result<()> {
         // Install openssl@1.1
         match crate::thalamus::tools::cmd(format!("brew install openssl@1.1")){
             Ok(x) => {
-                println(x);
+                println!(x);
             },
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1")),
         }
@@ -82,7 +82,7 @@ pub fn install() -> std::io::Result<()> {
         // Install ffmpeg
         match crate::thalamus::tools::cmd(format!("brew install ffmpeg")){
             Ok(x) => {
-                println(x);
+                println!(x);
             },
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ffmpeg")),
         }
@@ -90,7 +90,7 @@ pub fn install() -> std::io::Result<()> {
         // Configure Miniconda
         match crate::thalamus::tools::decmd(String::from("conda init \"$(basename \"${SHELL}\")\" && conda create -n py310-whisper python=3.10 -y")){
             Ok(x) => {
-                println(x);
+                println!(x);
             },
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to configure miniconda")),
         }
