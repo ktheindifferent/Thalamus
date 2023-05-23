@@ -10,6 +10,8 @@
 
 use std::fs;
 use std::io;
+use std::fs::File;
+use std::io::Write;
 use std::path::{Path};
 use std::process::{Command, Stdio};
 use error_chain::error_chain;
@@ -66,7 +68,11 @@ pub fn cmd(command: String) -> Result<String>{
     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 }
 
-
+pub fn touch(path: String) -> Result<()>{
+    let mut output = File::create(path.as_str())?;
+    write!(output, "")?;
+    Ok(())
+}
 
 // subshell
 // sudo -u USERNAME bash -c 'whoami;echo $USER'

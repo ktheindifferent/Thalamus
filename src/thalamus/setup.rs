@@ -90,6 +90,11 @@ pub fn install() -> std::io::Result<()> {
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install whisper")),
     }
 
+
+    // TODO - Service bootstrap for mac
+    // sudo launchctl bootstrap system /Library/LaunchDaemons/${YOUR_SERVICE_NAME}.plist
+    // sudo launchctl enable system/${YOUR_SERVICE_NAME}
+    // sudo launchctl kickstart -kp system/${YOUR_SERVICE_NAME}
     
     Ok(())
 }
