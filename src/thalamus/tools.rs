@@ -83,7 +83,7 @@ pub fn idfk() -> Result<String>{
     }
 
 
-    let child = Command::new("sudo -u $USER sh -c")
+    let child = Command::new("/usr/bin/sudo -u $USER sh -c ")
     .arg("/opt/thalamus/models/coreml.sh")
     .stdout(Stdio::piped())
     .spawn()
