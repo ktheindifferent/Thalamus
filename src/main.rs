@@ -41,9 +41,9 @@ fn main() {
     if Path::new("/opt/thalamus/").exists() {
         let touch_status = crate::thalamus::tools::touch("/opt/thalamus/output.log".to_string());
         if touch_status.is_ok() {
-            SimpleLogger::new().with_colors(true).with_output_file("/opt/thalamus/output.log".to_string()).init().unwrap();
+            SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Warn).with_timestamps(true).with_output_file("/opt/thalamus/output.log".to_string()).init().unwrap();
         } else {
-            SimpleLogger::new().with_colors(true).init().unwrap();
+            SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Warn).with_timestamps(true).init().unwrap();
         }
     } else {
         simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Warn).with_timestamps(true).init().unwrap();
