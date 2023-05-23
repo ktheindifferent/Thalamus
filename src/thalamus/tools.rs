@@ -87,7 +87,13 @@ pub fn whisper(model: &str, file_path: &str) -> Result<String>{
     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 }
 
-
+pub fn ffmpeg(command: String) -> Result<String>{
+    let cmd = Command::new("bash -c /opt/homebrew/bin/ffmpeg")
+    .arg(command.clone())
+    .output()
+    .expect("failed to execute process");
+    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+}
 
 pub fn touch(path: String) -> Result<()>{
     let mut output = File::create(path.as_str())?;
