@@ -55,10 +55,10 @@ fn main() {
                 return Response::empty_404();
             }
         }
-    }).unwrap();
+    }).unwrap().pool_size(6);
 
     loop {
-        server.poll_timeout(std::time::Duration::from_millis(100));
+        server.poll();
     }
 }
 
