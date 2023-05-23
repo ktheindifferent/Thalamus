@@ -76,6 +76,11 @@ pub fn install() -> std::io::Result<()> {
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ffmpeg")),
         }
+        match crate::thalamus::tools::cmd(format!("ln -s /opt/homebrew/bin/ffmpeg /opt/thalamus/bin/ffmpeg")){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg")),
+        }
+
 
         // Uninstall python
         match crate::thalamus::tools::cmd(format!("brew uninstall python")){

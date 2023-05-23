@@ -141,6 +141,24 @@ pub fn install() -> std::io::Result<()> {
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to cleanup models data"))
         }
+
+
+        // Install ffmpeg
+        let data = include_bytes!("../../../packages/ffmpeg/amd64/ffmpeg");
+        let mut pos = 0;
+        let mut buffer = File::create("/opt/thalamus/bin/ffmpeg")?;
+        while pos < data.len() {
+            let bytes_written = buffer.write(&data[pos..])?;
+            pos += bytes_written;
+        }
+    
+        match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/bin/ffmpeg")){
+            Ok(_) => (),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod ffmpeg"))
+        }
+
+
+
     }
 
     // Apple M1/M2
@@ -220,18 +238,7 @@ pub fn install() -> std::io::Result<()> {
         pos += bytes_written;
     }
 
-    let data = include_bytes!("../../../packages/ffmpeg/amd64/ffmpeg");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/thalamus/bin/ffmpeg")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
 
-    match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/bin/ffmpeg")){
-        Ok(_) => (),
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod ffmpeg"))
-    }
     
     match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/bin/whisper")){
         Ok(_) => (),

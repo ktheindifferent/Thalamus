@@ -7,6 +7,17 @@
 // Developed by Caleb Mitchell Smith (PixelCoda)
 // Licensed under GPLv3....see LICENSE file.
 
+// TODO:
+// - Dynamically link ffmpeg library for M1/M2 mac
+// - Update nvdia, and linux binaries
+// - Automatic updates via the Open Sam Foundation
+// - Automatic Service Installer for Unix
+// - Configurable web pool size
+// - whisper vwav generation
+// - llamma.cpp support
+// - internal library
+// - publish 0.0.1
+
 use rouille::Server;
 use rouille::Response;
 use simple_logger::SimpleLogger;
