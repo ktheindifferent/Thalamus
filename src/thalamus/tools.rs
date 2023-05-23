@@ -30,19 +30,19 @@ pub fn python3(command: String) -> String{
     return String::from_utf8_lossy(&cmd.stdout).to_string();
 }
 
-pub fn idfk(command: &str) -> String {
-    let child = Command::new("/bin/python3")
-    .arg(command)
-    .stdout(Stdio::piped())
-    .spawn()
-    .expect("failed to execute child");
+// pub fn idfk(command: &str) -> String {
+//     let child = Command::new("/bin/python3")
+//     .arg(command)
+//     .stdout(Stdio::piped())
+//     .spawn()
+//     .expect("failed to execute child");
 
-    let output = child
-        .wait_with_output()
-        .expect("failed to wait on child");
+//     let output = child
+//         .wait_with_output()
+//         .expect("failed to wait on child");
 
-    return String::from_utf8_lossy(&output.stdout).to_string();
-}
+//     return String::from_utf8_lossy(&output.stdout).to_string();
+// }
 
 pub fn pip3(command: &str) -> String {
     let child = Command::new("/bin/pip3")
@@ -76,10 +76,25 @@ pub fn decmd2(command: String) -> Result<String>{
 }
 
 pub fn idfk() -> Result<String>{
-    let cmd = Command::new("sudo")
+
+
+    let child = Command::new("/usr/bin/sudo")
     .arg("-u sam bash -c '/opt/thalamus/models/coreml.sh'")
-    .output().expect("failed to execute process");
-    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+    let output = child
+        .wait_with_output()
+        .expect("failed to wait on child");
+
+    return String::from_utf8_lossy(&output.stdout).to_string();
+
+
+    // let cmd = Command::new("sudo")
+    // .arg()
+    // .output().expect("failed to execute process");
+    // return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 }
 
 
