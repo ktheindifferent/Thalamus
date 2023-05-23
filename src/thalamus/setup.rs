@@ -82,12 +82,6 @@ pub fn install() -> std::io::Result<()> {
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to uninstall python")),
         }
-
-        // Configure Miniconda
-        match crate::thalamus::tools::subdecmd(String::from("conda init \"$(basename \"${SHELL}\")\" && conda create -n py310-whisper python=3.10 -y")){
-            Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to configure miniconda")),
-        }
    }
 
 

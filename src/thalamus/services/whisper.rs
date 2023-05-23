@@ -191,15 +191,18 @@ pub fn install() -> std::io::Result<()> {
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod /opt/thalamus")),
         }
+        match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/models/coreml.sh")){
+            Ok(_) => {},
+            Err(_) => {},
+        }
 
-        // Configure Miniconda and Generate ML models
-        crate::thalamus::tools::idfk();
-        // match crate::thalamus::tools::decmd(format!("/opt/thalamus/models/coreml.sh")){
-        //     Ok(x) => {
-        //         println!("{:?}", x);
-        //     },
-        //     Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to generate coreml models")),
-        // }
+        // Configure Miniconda and Generate ML models if necessary
+        if !Path::new("/opt/thalamus/models/coreml-encoder-tiny.mlpackage").exists() || !Path::new("/opt/thalamus/models/coreml-encoder-large.mlpackage").exists(){
+            match crate::thalamus::tools::cmd(format!("/opt/thalamus/models/coreml.sh")){
+                Ok(_) => {},
+                Err(_) => {},
+            }    
+        }
     }
 
     let data = include_bytes!("../../../fonts/courier.ttf");

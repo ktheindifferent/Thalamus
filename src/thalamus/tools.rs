@@ -67,56 +67,6 @@ pub fn cmd(command: String) -> Result<String>{
 }
 
 
-pub fn decmd2(command: String) -> Result<String>{
-    let cmd = Command::new("sudo")
-    .arg("-u $USER")
-    .arg(command)
-    .output()?;
-    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
-}
-
-pub fn idfk() -> Result<String>{
-
-    match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/models/coreml.sh")){
-        Ok(_) => {},
-        Err(_) => {},
-    }
-
-
-    let child = Command::new("sh")
-    .arg("-c")
-    .arg(format!("/opt/thalamus/models/coreml.sh"))
-    .stdout(Stdio::piped())
-    .spawn()
-    .expect("failed to execute child");
-
-    let output = child
-        .wait_with_output()
-        .expect("failed to wait on child");
-
-    return Ok(String::from_utf8_lossy(&output.stdout).to_string());
-}
-
-
-// sudo -u sam bash -c '/opt/thalamus/models/coreml.sh'
-
-// 
-pub fn decmd(command: String) -> Result<String>{
-    let cmd = Command::new("bash")
-    .arg("-c")
-    .arg(format!("sudo -u sam bash -c '{}'", command))
-    .arg(command)
-    .output()?;
-    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
-}
-
-pub fn subdecmd(command: String) -> Result<String>{
-    let cmd = Command::new("sh")
-    .arg("-c")
-    .arg(format!("sudo -u $USER bash -c '{}'", command))
-    .output()?;
-    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
-}
 
 // subshell
 // sudo -u USERNAME bash -c 'whoami;echo $USER'
