@@ -82,16 +82,14 @@ pub fn whisper(model: &str, file_path: &str) -> Result<String>{
     .arg(format!("-m /opt/thalamus/models/ggml-{}.bin", model))
     .arg(format!("-f {}.16.wav", file_path))
     .arg("-otxt")
-    .output()
-    .expect("failed to execute process");
+    .output()?;
     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 }
 
 pub fn ffmpeg(command: String) -> Result<String>{
-    let cmd = Command::new("/opt/homebrew/bin/ffmpeg")
+    let cmd = Command::new("bash -c /opt/homebrew/bin/ffmpeg")
     .arg(command.clone())
-    .output()
-    .expect("failed to execute process");
+    .output()?;
     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 }
 
