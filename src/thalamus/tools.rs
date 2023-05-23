@@ -78,10 +78,8 @@ pub fn decmd2(command: String) -> Result<String>{
 pub fn idfk() -> Result<String>{
 
 
-    let child = Command::new("/usr/bin/sudo")
-    .arg("-u sam")
-    .arg("bash")
-    .arg("-c '/opt/thalamus/models/coreml.sh'")
+    let child = Command::new("/usr/bin/sudo -u $USER")
+    .arg("bash -c '/opt/thalamus/models/coreml.sh'")
     .stdout(Stdio::piped())
     .spawn()
     .expect("failed to execute child");
