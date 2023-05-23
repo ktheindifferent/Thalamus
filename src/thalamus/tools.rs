@@ -79,7 +79,7 @@ pub fn idfk() -> Result<String>{
 
     match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/models/coreml.sh")){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/fonts directory")),
+        Err(_) => {},
     }
 
 
