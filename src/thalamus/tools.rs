@@ -64,9 +64,21 @@ pub fn cmd(command: String) -> Result<String>{
     let cmd = Command::new("sh")
     .arg("-c")
     .arg(command.clone())
-    .spawn()?;
-    return Ok(format!("{:?}", cmd.wait_with_output()));
+    .output()?;
+    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 }
+
+
+pub fn whisper(model: &str, file_path: &str) -> Result<String>{
+    let cmd = Command::new("/opt/thalamus/bin/whisper")
+    .arg(format!("-m /opt/thalamus/models/ggml-{}.bin", model))
+    .arg(format!("-f {}.16.wav", file_path))
+    .arg("-otxt")
+    .output()?;
+    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+}
+
+
 
 pub fn touch(path: String) -> Result<()>{
     let mut output = File::create(path.as_str())?;
