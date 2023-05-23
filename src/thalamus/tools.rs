@@ -32,7 +32,7 @@ pub fn python3(command: String) -> String{
     return String::from_utf8_lossy(&cmd.stdout).to_string();
 }
 
-// pub fn idfk(command: &str) -> String {
+// // pub fn idfk(command: &str) -> String {
 //     let child = Command::new("/bin/python3")
 //     .arg(command)
 //     .stdout(Stdio::piped())
@@ -44,7 +44,7 @@ pub fn python3(command: String) -> String{
 //         .expect("failed to wait on child");
 
 //     return String::from_utf8_lossy(&output.stdout).to_string();
-// }
+// // }
 
 pub fn pip3(command: &str) -> String {
     let child = Command::new("/bin/pip3")
@@ -87,11 +87,23 @@ pub fn whisper(model: &str, file_path: &str) -> Result<String>{
 }
 
 pub fn ffmpeg(command: String) -> Result<String>{
-    let cmd = Command::new("bash -c /opt/homebrew/bin/ffmpeg")
-    .arg(command.clone())
-    .output()?;
-    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+    let child = Command::new("/opt/homebrew/bin/ffmpeg")
+    .arg(command)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return String::from_utf8_lossy(&output.stdout).to_string();
 }
+
+
+
+
 
 pub fn touch(path: String) -> Result<()>{
     let mut output = File::create(path.as_str())?;
