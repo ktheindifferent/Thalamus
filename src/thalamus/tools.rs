@@ -81,19 +81,14 @@ pub fn idfk() -> Result<String>{
     let child = Command::new("/usr/bin/sudo -u $USER bash -c")
     .arg("/opt/thalamus/models/coreml.sh")
     .stdout(Stdio::piped())
-    .output()?;
+    .spawn()
+    .expect("failed to execute child");
 
-    // let output = child
-    //     .wait_with_output()
-    //     .expect("failed to wait on child");
+    let output = child
+        .wait_with_output()
+        .expect("failed to wait on child");
 
-    return Ok(String::from_utf8_lossy(&child.stdout).to_string());
-
-
-    // let cmd = Command::new("sudo")
-    // .arg()
-    // .output().expect("failed to execute process");
-    // return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());
 }
 
 
