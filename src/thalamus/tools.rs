@@ -88,7 +88,7 @@ pub fn whisper(model: &str, file_path: &str) -> Result<String>{
 }
 
 pub fn ffmpeg(command: String) -> Result<String>{
-    let cmd = Command::new("bash -c /opt/homebrew/bin/ffmpeg")
+    let cmd = Command::new("/opt/homebrew/bin/ffmpeg")
     .arg(command.clone())
     .output()
     .expect("failed to execute process");
