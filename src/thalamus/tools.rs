@@ -81,9 +81,9 @@ pub fn whisper(model: &str, file_path: &str) -> Result<String>{
     
     
     let child = Command::new("/opt/thalamus/bin/whisper")
-    .arg(format!(" -m /opt/thalamus/models/ggml-{}.bin", model))
-    .arg(format!(" -f {}.16.wav", file_path))
-    .arg(" -otxt")
+    .arg(format!("-m /opt/thalamus/models/ggml-{}.bin", model))
+    .arg(format!("-f {}.16.wav", file_path))
+    .arg("-otxt")
     .stdout(Stdio::piped())
     .spawn()
     .expect("failed to execute child");
