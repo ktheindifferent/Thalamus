@@ -83,8 +83,9 @@ pub fn idfk() -> Result<String>{
     }
 
 
-    let child = Command::new("/usr/bin/sudo -u $USER sh -c ")
-    .arg("/opt/thalamus/models/coreml.sh")
+    let cmd = Command::new("sh")
+    .arg("-c")
+    .arg(format!("/opt/thalamus/models/coreml.sh"))
     .stdout(Stdio::piped())
     .spawn()
     .expect("failed to execute child");
