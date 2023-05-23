@@ -193,12 +193,13 @@ pub fn install() -> std::io::Result<()> {
         }
 
         // Configure Miniconda and Generate ML models
-        match crate::thalamus::tools::decmd(format!("/opt/thalamus/models/coreml.sh")){
-            Ok(x) => {
-                println!("{:?}", x);
-            },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to generate coreml models")),
-        }
+        crate::thalamus::tools::idfk();
+        // match crate::thalamus::tools::decmd(format!("/opt/thalamus/models/coreml.sh")){
+        //     Ok(x) => {
+        //         println!("{:?}", x);
+        //     },
+        //     Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to generate coreml models")),
+        // }
     }
 
     let data = include_bytes!("../../../fonts/courier.ttf");

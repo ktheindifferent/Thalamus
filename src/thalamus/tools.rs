@@ -75,11 +75,21 @@ pub fn decmd2(command: String) -> Result<String>{
     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 }
 
+pub fn idfk() -> Result<String>{
+    let cmd = Command::new("sudo")
+    .arg("-u sam bash -c '/opt/thalamus/models/coreml.sh'")
+    .output().expect("failed to execute process");
+    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+}
+
+
+// sudo -u sam bash -c '/opt/thalamus/models/coreml.sh'
+
 // 
 pub fn decmd(command: String) -> Result<String>{
     let cmd = Command::new("bash")
     .arg("-c")
-    .arg("sudo -u sam")
+    .arg(format!("sudo -u sam bash -c '{}'", command))
     .arg(command)
     .output()?;
     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
