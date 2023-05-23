@@ -70,7 +70,7 @@ pub fn cmd(command: String) -> Result<String>{
 
 
 pub fn whisper(model: &str, file_path: &str) -> Result<String>{
-    let cmd = Command::new("/opt/thalamus/bin/whisper")
+    let cmd = Command::new("bash -c /opt/thalamus/bin/whisper")
     .arg(format!("-m /opt/thalamus/models/ggml-{}.bin", model))
     .arg(format!("-f {}.16.wav", file_path))
     .arg("-otxt")

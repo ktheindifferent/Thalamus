@@ -92,9 +92,9 @@ pub fn install() -> std::io::Result<()> {
 
 
     // TODO - Service bootstrap for mac
-    // sudo launchctl bootstrap system /Library/LaunchDaemons/${YOUR_SERVICE_NAME}.plist
-    // sudo launchctl enable system/${YOUR_SERVICE_NAME}
-    // sudo launchctl kickstart -kp system/${YOUR_SERVICE_NAME}
+    // sudo launchctl bootstrap system /Library/LaunchDaemons/com.opensamfoundation.thalamus.plist
+    // sudo launchctl enable system/com.opensamfoundation.thalamus.plist
+    // sudo launchctl kickstart -kp system/com.opensamfoundation.thalamus.plist
     
     Ok(())
 }
