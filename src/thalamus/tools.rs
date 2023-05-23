@@ -101,6 +101,7 @@ pub fn whisper(model: &str, file_path: &str) -> Result<String>{
 
 pub fn wav_to_16000(input: String) -> Result<String>{
     let child = Command::new("/opt/homebrew/bin/ffmpeg")
+    .arg("-y")
     .arg("-i")
     .arg(format!("{}", input))
     .arg("-ar")
