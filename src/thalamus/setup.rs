@@ -53,7 +53,7 @@ pub fn install() -> std::io::Result<()> {
    // Apple M1/M2
    #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
 
-        println("M1/M2 detected");
+        println!("M1/M2 detected");
 
         // Install Homebrew
         match crate::thalamus::tools::cmd(format!("/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")){
