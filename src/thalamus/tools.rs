@@ -83,9 +83,9 @@ pub fn idfk() -> Result<String>{
     .stdout(Stdio::piped())
     .output()?;
 
-    let output = child
-        .wait_with_output()
-        .expect("failed to wait on child");
+    // let output = child
+    //     .wait_with_output()
+    //     .expect("failed to wait on child");
 
     return Ok(String::from_utf8_lossy(&output.stdout).to_string());
 
