@@ -68,6 +68,14 @@ pub fn cmd(command: String) -> Result<String>{
     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 }
 
+pub fn bash(command: String) -> Result<String>{
+    let cmd = Command::new("bash")
+    .arg("-c")
+    .arg(command.clone())
+    .output()?;
+    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+}
+
 
 pub fn whisper(model: &str, file_path: &str) -> Result<String>{
     let cmd = Command::new("bash -c /opt/thalamus/bin/whisper")
