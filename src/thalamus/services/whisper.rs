@@ -36,15 +36,15 @@ pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamu
 
     // Execute Whisper
     match method {
-        "tiny" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?),
-        "base" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-base.bin -f {}.16.wav -otxt", file_path))?),
-        "medium" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-medium.bin -f {}.16.wav -otxt", file_path))?),
-        "large" => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-large.bin -f {}.16.wav -otxt", file_path))?),
-        &_ => println!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?)
+        "tiny" => log::warn!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?),
+        "base" => log::warn!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-base.bin -f {}.16.wav -otxt", file_path))?),
+        "medium" => log::warn!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-medium.bin -f {}.16.wav -otxt", file_path))?),
+        "large" => log::warn!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-large.bin -f {}.16.wav -otxt", file_path))?),
+        &_ => log::warn!("{}", crate::thalamus::tools::cmd(format!("/opt/thalamus/bin/whisper -m /opt/thalamus/models/ggml-tiny.bin -f {}.16.wav -otxt", file_path))?)
     };
     
     // Copy the results to memory
-    let data = std::fs::read_to_string(format!("{}.16.wav.txt", file_path).as_str()).unwrap();
+    let data = std::fs::read_to_string(format!("{}.16.wav.txt", file_path).as_str())?;
 
     // Cleanup
     thread::spawn(move || {
