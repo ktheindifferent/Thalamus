@@ -107,7 +107,7 @@ pub fn brew_install(package: &str) -> Result<String>{
 
     let child = Command::new("/usr/bin/sudo")
     .arg("-u")
-    .arg("$USER")
+    .arg("sam")
     .arg("/opt/homebrew/bin/brew")
     .arg("install")
     .arg(package)
