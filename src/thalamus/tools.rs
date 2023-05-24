@@ -363,9 +363,25 @@ pub fn sh(script: &str) -> Result<String>{
 use curl::easy::Easy;
 
 pub fn download(file_path: &str, url: &str) -> Result<bool>{
-    let resp = reqwest::blocking::get(url)?;
-    let bytes = resp.bytes()?;
-    std::fs::write(file_path, bytes)?;
+    // let resp = reqwest::blocking::get(url)?;
+    // let bytes = resp.bytes()?;
+    // std::fs::write(file_path, bytes)?;
+
+    let child = Command::new("/opt/homebrew/bin/wget")
+    .arg("-O")
+    .arg(file_path)
+    .arg(url)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    // return Ok(String::from_utf8_lossy(&output.stdout).to_string()); 
+
     return Ok(true);
     // let mut dst = Vec::new();
     // let mut easy = Easy::new();
