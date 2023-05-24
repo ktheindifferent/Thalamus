@@ -119,6 +119,13 @@ pub fn install() -> std::io::Result<()> {
         pos += bytes_written;
     }
 
+    crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
+
+    match crate::thalamus::tools::rmd("/opt/thalamus/models/models.zip"){
+        Ok(_) => (),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to remove models.zip"))
+    }
+
     #[cfg(target_arch = "x86_64")]{
         log::info!("Installing whisper (x86_64) /opt/thalamus/bin/whisper");
         let data = include_bytes!("../../../packages/whisper/main-amd64");
@@ -129,20 +136,6 @@ pub fn install() -> std::io::Result<()> {
             pos += bytes_written;
         }
 
-        log::info!("Unpacking models.zip...");
-        let data = include_bytes!("../../../packages/whisper/models.zip");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/models/models.zip")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
-    
-        crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
-        match crate::thalamus::tools::rmd("/opt/thalamus/models/models.zip"){
-            Ok(_) => (),
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to remove models.zip"))
-        }
         match crate::thalamus::tools::mv("/opt/thalamus/models/models/*", "/opt/thalamus/models/"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to move model data"))
@@ -193,11 +186,8 @@ pub fn install() -> std::io::Result<()> {
             pos += bytes_written;
         }
     
-        crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
-        match crate::thalamus::tools::rmd("/opt/thalamus/models/models.zip"){
-            Ok(_) => (),
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to remove models.zip"))
-        }
+       
+
         match crate::thalamus::tools::mv("/opt/thalamus/models/models/*", "/opt/thalamus/models/"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to move model data"))
