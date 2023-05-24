@@ -363,26 +363,30 @@ pub fn sh(script: &str) -> Result<String>{
 use curl::easy::Easy;
 
 pub fn download(file_path: &str, url: &str) -> Result<bool>{
-    let mut dst = Vec::new();
-    let mut easy = Easy::new();
-    easy.url(url).unwrap();
-
-
-    {
-        let mut transfer = easy.transfer();
-        transfer.write_function(|data| {
-            dst.extend_from_slice(data);
-            Ok(data.len())
-        }).unwrap();
-        transfer.perform().unwrap();
-    }
-    {
-        let mut file = std::fs::File::create(file_path)?;
-        file.write_all(dst.as_slice())?;
-    }
-
-
+    let resp = reqwest::blocking::get(url)?;
+    let bytes = resp.bytes()?;
+    std::fs::write(file_path, bytes)?;
     return Ok(true);
+    // let mut dst = Vec::new();
+    // let mut easy = Easy::new();
+    // easy.url(url).unwrap();
+
+
+    // {
+    //     let mut transfer = easy.transfer();
+    //     transfer.write_function(|data| {
+    //         dst.extend_from_slice(data);
+    //         Ok(data.len())
+    //     }).unwrap();
+    //     transfer.perform().unwrap();
+    // }
+    // {
+    //     let mut file = std::fs::File::create(file_path)?;
+    //     file.write_all(dst.as_slice())?;
+    // }
+
+
+    // return Ok(true);
 }
 
 pub fn wav_to_16000(input: String) -> Result<String>{
