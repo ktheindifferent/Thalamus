@@ -121,7 +121,7 @@ pub fn install() -> std::io::Result<()> {
     std::mem::drop(buffer);
     
 
-    crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
+    crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", "/opt/thalamus/models/")?;
 
     // match crate::thalamus::tools::rmd("/opt/thalamus/models/models.zip"){
     //     Ok(_) => (),

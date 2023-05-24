@@ -360,7 +360,6 @@ pub fn sh(script: &str) -> Result<String>{
     return Ok(String::from_utf8_lossy(&output.stdout).to_string()); 
 }
 
-use curl::easy::Easy;
 
 pub fn download(file_path: &str, url: &str) -> Result<bool>{
     // let resp = reqwest::blocking::get(url)?;
@@ -376,7 +375,7 @@ pub fn download(file_path: &str, url: &str) -> Result<bool>{
     .expect("failed to execute child");
 
 
-    let output = child
+    let _output = child
     .wait_with_output()
     .expect("failed to wait on child");
 
@@ -475,69 +474,51 @@ pub fn does_wav_have_sounds(audio_filename: String) -> Result<bool>{
 }
 
 
-pub fn extract_zip(zip_path: &str, extract_path: String) -> i32 {
-
+pub fn extract_zip(zip_path: &str, desination_path: &str) -> std::io::Result<()> {
     let fname = std::path::Path::new(zip_path);
-    let file = fs::File::open(&fname).unwrap();
+    let file = fs::File::open(&fname)?;
 
-    let archivew = zip::ZipArchive::new(file);
+    let mut archive = zip::ZipArchive::new(file)?;
 
-    match archivew{
-        Ok(mut archive) => {
-            for i in 0..archive.len() {
-                let mut file = archive.by_index(i).unwrap();
-                let outpath_end = match file.enclosed_name() {
-                    Some(path) => path.to_owned(),
-                    None => continue,
-                };
-        
-                let out_mend = extract_path.to_owned() + outpath_end.to_str().unwrap();
-        
-                let outpath = Path::new(&(out_mend));
-        
-                {
-                    let comment = file.comment();
-                    if !comment.is_empty() {
-                        // log::info!("File {} comment: {}", i, comment);
-                    }
-                }
-        
-                if (&*file.name()).ends_with('/') {
-                    log::info!("File {} extracted to \"{}\"", i, outpath.display());
-                    fs::create_dir_all(&outpath).unwrap();
-                } else {
-                    log::info!(
-                        "File {} extracted to \"{}\" ({} bytes)",
-                        i,
-                        outpath.display(),
-                        file.size()
-                    );
-                    if let Some(p) = outpath.parent() {
-                        if !p.exists() {
-                            fs::create_dir_all(&p).unwrap();
-                        }
-                    }
-                    let mut outfile = fs::File::create(&outpath).unwrap();
-                    io::copy(&mut file, &mut outfile).unwrap();
-                }
-        
-                // Get and Set permissions
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-        
-                    if let Some(mode) = file.unix_mode() {
-                        fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
-                    }
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        let outpath_end = match file.enclosed_name() {
+            Some(path) => path.to_owned(),
+            None => continue,
+        };
+
+        let out_mend = desination_path.to_owned() + outpath_end.to_str().ok_or(std::io::Error::new(std::io::ErrorKind::Other, "oh no!"))?;
+
+        let outpath = Path::new(&(out_mend));
+
+        if (&*file.name()).ends_with('/') {
+            log::info!("File {} extracted to \"{}\"", i, outpath.display());
+            fs::create_dir_all(&outpath)?;
+        } else {
+            log::info!(
+                "File {} extracted to \"{}\" ({} bytes)",
+                i,
+                outpath.display(),
+                file.size()
+            );
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(&p)?;
                 }
             }
-        },
-        Err(err) => {
-            log::error!("{}", err);
-            return -1;
+            let mut outfile = fs::File::create(&outpath)?;
+            io::copy(&mut file, &mut outfile)?;
+        }
+
+        // Get and Set permissions
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            if let Some(mode) = file.unix_mode() {
+                fs::set_permissions(&outpath, fs::Permissions::from_mode(mode))?;
+            }
         }
     }
-
-
-    0
+    return Ok(());
 }
