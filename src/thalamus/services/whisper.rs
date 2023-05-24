@@ -118,6 +118,8 @@ pub fn install() -> std::io::Result<()> {
         let bytes_written = buffer.write(&data[pos..])?;
         pos += bytes_written;
     }
+    std::mem::drop(buffer);
+    
 
     crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
 
