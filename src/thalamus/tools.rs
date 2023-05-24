@@ -68,6 +68,25 @@ pub fn pip3(command: &str) -> String {
 //     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
 // }
 
+pub fn dbash(command: &str) -> Result<String>{
+    let child = Command::new("/usr/bin/sudo")
+    .arg("-u")
+    .arg("$USER")
+    .arg("/bin/bash")
+    .arg("-c")
+    .arg(command)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
 pub fn bash(command: &str) -> Result<String>{
     let child = Command::new("/bin/bash")
     .arg("-c")
@@ -85,7 +104,11 @@ pub fn bash(command: &str) -> Result<String>{
 }
 
 pub fn brew_install(package: &str) -> Result<String>{
-    let child = Command::new("/opt/homebrew/bin/brew")
+
+    let child = Command::new("/usr/bin/sudo")
+    .arg("-u")
+    .arg("$USER")
+    .arg("/opt/homebrew/bin/brew")
     .arg("install")
     .arg(package)
     .stdout(Stdio::piped())
@@ -101,7 +124,10 @@ pub fn brew_install(package: &str) -> Result<String>{
 }
 
 pub fn brew_uninstall(package: &str) -> Result<String>{
-    let child = Command::new("/opt/homebrew/bin/brew")
+    let child = Command::new("/usr/bin/sudo")
+    .arg("-u")
+    .arg("$USER")
+    .arg("/opt/homebrew/bin/brew")
     .arg("uninstall")
     .arg(package)
     .stdout(Stdio::piped())

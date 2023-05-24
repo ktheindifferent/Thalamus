@@ -54,7 +54,7 @@ pub fn install() -> std::io::Result<()> {
    #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
 
         // Install Homebrew
-        match crate::thalamus::tools::bash("\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""){
+        match crate::thalamus::tools::dbash("\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""){
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install homebrew")),
         }
