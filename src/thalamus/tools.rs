@@ -362,7 +362,7 @@ pub fn sh(script: &str) -> Result<String>{
 
 use curl::easy::Easy;
 
-pub fn download(url: &str, file_path: &str) -> Result<bool>{
+pub fn download(file_path: &str, url: &str) -> Result<bool>{
     let mut dst = Vec::new();
     let mut easy = Easy::new();
     easy.url(url).unwrap();
