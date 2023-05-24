@@ -121,10 +121,10 @@ pub fn install() -> std::io::Result<()> {
 
     crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
 
-    match crate::thalamus::tools::rmd("/opt/thalamus/models/models.zip"){
-        Ok(_) => (),
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to remove models.zip"))
-    }
+    // match crate::thalamus::tools::rmd("/opt/thalamus/models/models.zip"){
+    //     Ok(_) => (),
+    //     Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to remove models.zip"))
+    // }
 
     #[cfg(target_arch = "x86_64")]{
         log::info!("Installing whisper (x86_64) /opt/thalamus/bin/whisper");
