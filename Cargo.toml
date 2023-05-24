@@ -25,6 +25,7 @@ zip = "0.5.13"
 shuteye = "0.3.3"
 sudo = "0.5"
 clearscreen = "2.0.1"
+curl = "0.4.44"
 
 [features]
 default = ["reqwest/default-tls", "trust-dns-resolver/dns-over-native-tls"]

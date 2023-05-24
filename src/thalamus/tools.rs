@@ -360,11 +360,28 @@ pub fn sh(script: &str) -> Result<String>{
     return Ok(String::from_utf8_lossy(&output.stdout).to_string()); 
 }
 
+use curl::easy::Easy;
 
 pub fn download(url: &str, file_path: &str) -> Result<bool>{
-    let resp = reqwest::blocking::get(url)?;
-    let bytes = resp.bytes()?;
-    std::fs::write(file_path, bytes)?;
+    let mut dst = Vec::new();
+    let mut easy = Easy::new();
+    easy.url(url).unwrap();
+
+
+    {
+        let mut transfer = easy.transfer();
+        transfer.write_function(|data| {
+            dst.extend_from_slice(data);
+            Ok(data.len())
+        }).unwrap();
+        transfer.perform().unwrap();
+    }
+    {
+        let mut file = std::fs::File::create(file_path)?;
+        file.write_all(dst.as_slice())?;
+    }
+
+
     return Ok(true);
 }
 
