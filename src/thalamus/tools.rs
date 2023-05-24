@@ -71,7 +71,7 @@ pub fn pip3(command: &str) -> String {
 pub fn dbash(command: &str) -> Result<String>{
     let child = Command::new("/usr/bin/sudo")
     .arg("-u")
-    .arg("$USER")
+    .arg("sam")
     .arg("/bin/bash")
     .arg("-c")
     .arg(command)
@@ -126,7 +126,7 @@ pub fn brew_install(package: &str) -> Result<String>{
 pub fn brew_uninstall(package: &str) -> Result<String>{
     let child = Command::new("/usr/bin/sudo")
     .arg("-u")
-    .arg("$USER")
+    .arg("sam")
     .arg("/opt/homebrew/bin/brew")
     .arg("uninstall")
     .arg(package)
