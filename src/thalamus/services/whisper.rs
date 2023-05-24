@@ -109,6 +109,16 @@ pub fn install() -> std::io::Result<()> {
         }
     }
 
+
+    log::info!("Unpacking models.zip...");
+    let data = include_bytes!("../../../packages/whisper/models.zip");
+    let mut pos = 0;
+    let mut buffer = File::create("/opt/thalamus/models/models.zip")?;
+    while pos < data.len() {
+        let bytes_written = buffer.write(&data[pos..])?;
+        pos += bytes_written;
+    }
+
     #[cfg(target_arch = "x86_64")]{
         log::info!("Installing whisper (x86_64) /opt/thalamus/bin/whisper");
         let data = include_bytes!("../../../packages/whisper/main-amd64");
@@ -172,14 +182,7 @@ pub fn install() -> std::io::Result<()> {
             pos += bytes_written;
         }
 
-        log::info!("Unpacking models.zip...");
-        let data = include_bytes!("../../../packages/whisper/models.zip");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/models/models.zip")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
+
 
         log::info!("Unpacking coreml.sh...");
         let data = include_bytes!("../../../packages/whisper/coreml.sh");
