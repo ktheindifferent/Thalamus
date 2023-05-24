@@ -110,18 +110,28 @@ pub fn install() -> std::io::Result<()> {
     }
 
 
-    log::info!("Unpacking models.zip...");
-    let data = include_bytes!("../../../packages/whisper/models.zip");
+    log::info!("Unpacking convert-whisper-to-coreml.py...");
+    let data = include_bytes!("../../../packages/whisper/convert-whisper-to-coreml.py");
     let mut pos = 0;
-    let mut buffer = File::create("/opt/thalamus/models/models.zip")?;
+    let mut buffer = File::create("/opt/thalamus/models/convert-whisper-to-coreml.py")?;
     while pos < data.len() {
         let bytes_written = buffer.write(&data[pos..])?;
         pos += bytes_written;
     }
-    std::mem::drop(buffer);
+
+    
+    log::info!("Unpacking generate-coreml-model.sh...");
+    let data = include_bytes!("../../../packages/whisper/generate-coreml-model.sh");
+    let mut pos = 0;
+    let mut buffer = File::create("/opt/thalamus/models/generate-coreml-model.sh")?;
+    while pos < data.len() {
+        let bytes_written = buffer.write(&data[pos..])?;
+        pos += bytes_written;
+    }
+
     
 
-    crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", "/opt/thalamus/models/")?;
+    // crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", "/opt/thalamus/models/")?;
 
     // match crate::thalamus::tools::rmd("/opt/thalamus/models/models.zip"){
     //     Ok(_) => (),

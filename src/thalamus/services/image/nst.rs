@@ -19,7 +19,6 @@ use std::path::Path;
 use std::fs;
 use std::fs::File;
 use std::io::{Write};
-use titlecase::titlecase;
 use serde::{Serialize, Deserialize};
 
 use rouille::post_input;
@@ -164,10 +163,10 @@ pub fn styles() -> Result<Vec<Style>, crate::thalamus::services::Error> {
 
         let pth = path.unwrap().path().display().to_string();
 
-        let style = Style{
-            name: titlecase(&format!("{}", pth.clone()).replace("/opt/sam/models/nst/", "").replace(".jpg", "").replace("_", " ")),
-            file_path: pth.clone(),
-        };
+        // let style = Style{
+        //     name: titlecase(&format!("{}", pth.clone()).replace("/opt/sam/models/nst/", "").replace(".jpg", "").replace("_", " ")),
+        //     file_path: pth.clone(),
+        // };
 
         styles.push(style);
     }

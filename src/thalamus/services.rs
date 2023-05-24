@@ -15,7 +15,6 @@ error_chain! {
     foreign_links {
         Io(std::io::Error);
         PostError(rouille::input::post::PostError);
-        HttpRequest(reqwest::Error);
         InternalToolsError(crate::thalamus::tools::Error);
         // Postgres(postgres::Error);
         // PostError(rouille::input::post::PostError);
