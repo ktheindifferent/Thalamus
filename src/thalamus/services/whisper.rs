@@ -49,7 +49,7 @@ pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamu
     // Cleanup
     thread::spawn(move || {
         thread::sleep(Duration::from_millis(60000));
-        crate::thalamus::tools::cmd(format!("rm {}*", file_path)).unwrap();
+        crate::thalamus::tools::rm(format!("{}*", file_path).as_str()).unwrap();
     });
 
     // Return the results
@@ -71,7 +71,7 @@ pub fn install() -> std::io::Result<()> {
 
     if !Path::new("/opt/thalamus/models/ggml-tiny.bin").exists(){
         log::warn!("ggml-tiny.bin is missing.....downloading it from https://huggingface.co/");
-        match crate::thalamus::tools::cmd(format!("wget -O /opt/thalamus/models/ggml-tiny.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin")){
+        match crate::thalamus::tools::download("/opt/thalamus/models/ggml-tiny.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin"){
             Ok(_) => {
                 log::info!("Stored model ggml-tiny.bin in /opt/thalamus/models/");
             },
@@ -81,7 +81,7 @@ pub fn install() -> std::io::Result<()> {
 
     if !Path::new("/opt/thalamus/models/ggml-base.bin").exists(){
         log::warn!("ggml-base.bin is missing.....downloading it from https://huggingface.co/");
-        match crate::thalamus::tools::cmd(format!("wget -O /opt/thalamus/models/ggml-base.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin")){
+        match crate::thalamus::tools::download("/opt/thalamus/models/ggml-base.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"){
             Ok(_) => {
                 log::info!("Stored model ggml-base.bin in /opt/thalamus/models/");
             },
@@ -91,7 +91,7 @@ pub fn install() -> std::io::Result<()> {
 
     if !Path::new("/opt/thalamus/models/ggml-medium.bin").exists(){
         log::warn!("ggml-medium.bin is missing.....downloading it from https://huggingface.co/");
-        match crate::thalamus::tools::cmd(format!("wget -O /opt/thalamus/models/ggml-medium.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin")){
+        match crate::thalamus::tools::download("/opt/thalamus/models/ggml-medium.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin"){
             Ok(_) => {
                 log::info!("Stored model ggml-medium.bin in /opt/thalamus/models/");
             },
@@ -101,7 +101,7 @@ pub fn install() -> std::io::Result<()> {
 
     if !Path::new("/opt/thalamus/models/ggml-large.bin").exists(){
         log::warn!("ggml-large.bin is missing.....downloading it from https://huggingface.co/");
-        match crate::thalamus::tools::cmd(format!("wget -O /opt/thalamus/models/ggml-large.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large.bin")){
+        match crate::thalamus::tools::download("/opt/thalamus/models/ggml-large.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large.bin"){
             Ok(_) => {
                 log::info!("Stored model ggml-large.bin in /opt/thalamus/models/");
             },
@@ -129,15 +129,15 @@ pub fn install() -> std::io::Result<()> {
         }
     
         crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
-        match crate::thalamus::tools::cmd(format!("rm -rf /opt/thalamus/models/models.zip")){
+        match crate::thalamus::tools::rmd("/opt/thalamus/models/models.zip"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to remove models.zip"))
         }
-        match crate::thalamus::tools::cmd(format!("mv /opt/thalamus/models/models/* /opt/thalamus/models/")){
+        match crate::thalamus::tools::mv("/opt/thalamus/models/models/*", "/opt/thalamus/models/"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to move model data"))
         }
-        match crate::thalamus::tools::cmd(format!("rm -rf /opt/thalamus/models/models/")){
+        match crate::thalamus::tools::rmd("/opt/thalamus/models/models/"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to cleanup models data"))
         }
@@ -152,7 +152,7 @@ pub fn install() -> std::io::Result<()> {
             pos += bytes_written;
         }
     
-        match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/bin/ffmpeg")){
+        match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/ffmpeg"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod ffmpeg"))
         }
@@ -191,30 +191,30 @@ pub fn install() -> std::io::Result<()> {
         }
     
         crate::thalamus::tools::extract_zip("/opt/thalamus/models/models.zip", format!("/opt/thalamus/models/"));
-        match crate::thalamus::tools::cmd(format!("rm -rf /opt/thalamus/models/models.zip")){
+        match crate::thalamus::tools::rmd("/opt/thalamus/models/models.zip"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to remove models.zip"))
         }
-        match crate::thalamus::tools::cmd(format!("mv /opt/thalamus/models/models/* /opt/thalamus/models/")){
+        match crate::thalamus::tools::mv("/opt/thalamus/models/models/*", "/opt/thalamus/models/"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to move model data"))
         }
-        match crate::thalamus::tools::cmd(format!("rm -rf /opt/thalamus/models/models/")){
+        match crate::thalamus::tools::rmd("/opt/thalamus/models/models/"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to cleanup models data"))
         }
 
         // Fix permissions
-        match crate::thalamus::tools::cmd(format!("chmod -R 777 /opt/thalamus/models")){
+        match crate::thalamus::tools::fix_permissions("/opt/thalamus/models"){
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod /opt/thalamus")),
         }
-        match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/models/coreml.sh")){
+        match crate::thalamus::tools::mark_as_executable("/opt/thalamus/models/coreml.sh"){
             Ok(_) => {},
             Err(_) => {},
         }
 
-        match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/models/generate-coreml-model.sh")){
+        match crate::thalamus::tools::mark_as_executable("/opt/thalamus/models/generate-coreml-model.sh"){
             Ok(_) => {},
             Err(_) => {},
         }
@@ -222,7 +222,7 @@ pub fn install() -> std::io::Result<()> {
         // Configure Miniconda and Generate ML models if necessary
         if !Path::new("/opt/thalamus/models/coreml-encoder-tiny.mlpackage").exists() || !Path::new("/opt/thalamus/models/coreml-encoder-large.mlpackage").exists(){
             log::warn!("CoreML Encoders are missing...please be patient while they are being generated. This may take a while. Future launches will be faster.");
-            match crate::thalamus::tools::cmd(format!("/opt/thalamus/models/coreml.sh")){
+            match crate::thalamus::tools::sh("/opt/thalamus/models/coreml.sh"){
                 Ok(_) => {},
                 Err(_) => {},
             }  
@@ -240,7 +240,7 @@ pub fn install() -> std::io::Result<()> {
 
 
     
-    match crate::thalamus::tools::cmd(format!("chmod +x /opt/thalamus/bin/whisper")){
+    match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/whisper"){
         Ok(_) => (),
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod whisper"))
     }

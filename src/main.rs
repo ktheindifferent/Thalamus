@@ -8,10 +8,11 @@
 // Licensed under GPLv3....see LICENSE file.
 
 // TODO:
-// - Dynamically link ffmpeg library for M1/M2 mac
-// - Update nvdia, and linux binaries
-// - Automatic updates via the Open Sam Foundation
+// - Dynamically link ffmpeg library for M1/M2 mac (DONE)
+// - Move wget functions to rust native library (done)
+// - Move all cmd functions to rust native library (done)
 // - Automatic Service Installer for Unix
+// - Automatic updates via the Open Sam Foundation
 // - Configurable web pool size
 // - whisper vwav generation
 // - llamma.cpp support
@@ -35,6 +36,9 @@ fn main() {
 
     // cls
     clearscreen::clear().unwrap();
+
+
+
 
     // Print Application Art and Version Information
     println!("████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ ");

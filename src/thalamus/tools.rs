@@ -60,21 +60,193 @@ pub fn pip3(command: &str) -> String {
     return String::from_utf8_lossy(&output.stdout).to_string();
 }
 
-pub fn cmd(command: String) -> Result<String>{
-    let cmd = Command::new("sh")
+// pub fn cmd(command: String) -> Result<String>{
+//     let cmd = Command::new("sh")
+//     .arg("-c")
+//     .arg(command.clone())
+//     .output()?;
+//     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+// }
+
+pub fn bash(command: &str) -> Result<String>{
+    let child = Command::new("/bin/bash")
     .arg("-c")
-    .arg(command.clone())
-    .output()?;
-    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+    .arg(command)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
 }
 
-pub fn bash(command: String) -> Result<String>{
-    let cmd = Command::new("bash")
-    .arg("-c")
-    .arg(command.clone())
-    .output()?;
-    return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
+pub fn brew_install(package: &str) -> Result<String>{
+    let child = Command::new("/opt/homebrew/bin/brew")
+    .arg("install")
+    .arg(package)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
 }
+
+pub fn brew_uninstall(package: &str) -> Result<String>{
+    let child = Command::new("/opt/homebrew/bin/brew")
+    .arg("uninstall")
+    .arg(package)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+pub fn ln(path: &str, link: &str) -> Result<String>{
+    let child = Command::new("/bin/ln")
+    .arg("-s")
+    .arg(path)
+    .arg(link)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+pub fn mv(source: &str, destination: &str) -> Result<String>{
+    let child = Command::new("/bin/mv")
+    .arg(source)
+    .arg(destination)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+pub fn cp(source: &str, destination: &str) -> Result<String>{
+    let child = Command::new("/bin/cp")
+    .arg(source)
+    .arg(destination)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+pub fn launchd_bootstrap(destination: &str) -> Result<String>{
+    let child = Command::new("/bin/launchctl")
+    .arg("bootstrap")
+    .arg("system")
+    .arg(destination)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+pub fn launchd_enable(destination: &str) -> Result<String>{
+    let child = Command::new("/bin/launchctl")
+    .arg("enable")
+    .arg(destination)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+pub fn launchd_kickstart(destination: &str) -> Result<String>{
+    let child = Command::new("/bin/launchctl")
+    .arg("kickstart")
+    .arg("-kp")
+    .arg(destination)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+pub fn rm(path: &str) -> Result<String>{
+    let child = Command::new("/bin/rm")
+    .arg(path)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+pub fn rmd(path: &str) -> Result<String>{
+    let child = Command::new("/bin/rm")
+    .arg("-rf")
+    .arg(path)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+
 
 
 pub fn whisper(model: &str, file_path: &str) -> Result<String>{
@@ -97,6 +269,77 @@ pub fn whisper(model: &str, file_path: &str) -> Result<String>{
 
     return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
     
+}
+
+pub fn mkdir(apath: &str) -> Result<String>{
+    let child = Command::new("/bin/mkdir")
+    .arg(apath)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+pub fn fix_permissions(apath: &str) -> Result<String>{
+    let child = Command::new("/bin/chmod")
+    .arg("-R")
+    .arg("777")
+    .arg(apath)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string()); 
+}
+
+pub fn mark_as_executable(apath: &str) -> Result<String>{
+    let child = Command::new("/bin/chmod")
+    .arg("+x")
+    .arg(apath)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string()); 
+}
+
+pub fn sh(script: &str) -> Result<String>{
+    let child = Command::new("/bin/sh")
+    .arg(script)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string()); 
+}
+
+
+pub fn download(url: &str, file_path: &str) -> Result<bool>{
+    let resp = reqwest::blocking::get(url)?;
+    let bytes = resp.bytes()?;
+    std::fs::write(file_path, bytes)?;
+    return Ok(true);
 }
 
 pub fn wav_to_16000(input: String) -> Result<String>{
