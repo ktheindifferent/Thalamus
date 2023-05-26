@@ -100,7 +100,7 @@ fn main() {
         Ok(exe_path) => {
             let current_exe_path = format!("{}", exe_path.display());
 
-            if current_exe_path.as_str() == "/opt/thalamus/bin"{
+            if current_exe_path.as_str() == "/opt/thalamus/bin/thalamus"{
                 let server = Server::new("0.0.0.0:8050", |request| {
                     match crate::thalamus::http::handle(request){
                         Ok(request) => {
