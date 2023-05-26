@@ -56,6 +56,52 @@ pub fn whisper(file_path: String, method: &str) -> Result<String, crate::thalamu
     return Ok(data);
 }
 
+
+pub fn whisper_vwav(file_path: String, method: &str) -> Result<String, crate::thalamus::services::Error> {
+
+    // Force all input to become wav@16khz
+    match crate::thalamus::tools::wav_to_16000(file_path.clone()){
+        Ok(_) => (),
+        Err(e) => return Err(crate::thalamus::services::Error::from(e))
+    };
+
+
+
+    // Execute Whisper
+    match method {
+        "tiny" => log::warn!("{}", crate::thalamus::tools::whisper_owts("tiny", file_path.as_str())?),
+        "base" => log::warn!("{}", crate::thalamus::tools::whisper_owts("base", file_path.as_str())?),
+        "medium" => log::warn!("{}", crate::thalamus::tools::whisper_owts("medium", file_path.as_str())?),
+        "large" => log::warn!("{}", crate::thalamus::tools::whisper_owts("large", file_path.as_str())?),
+        &_ => log::warn!("{}", crate::thalamus::tools::whisper_owts("tiny", file_path.as_str())?)
+    };
+    
+    // linux only patch
+    #[cfg(all(target_os = "linux"))] {
+        crate::thalamus::services::whisper::patch_whisper_wts(format!("{}.16.wav.wts", file_path.clone())).unwrap();
+    }
+    
+    match crate::thalamus::tools::mark_as_executable(format!("{}.16.wav.wts", file_path.clone()).as_str()){
+        Ok(_) => {},
+        Err(e) => {
+            log::error!("{}", e);
+        },
+    }
+
+    // 
+    match crate::thalamus::tools::sh(format!("{}.16.wav.wts", file_path.clone()).as_str()){
+        Ok(_) => {},
+        Err(e) => {
+            log::error!("{}", e);
+        },
+    }
+
+
+  
+    // Return the results
+    return Ok(format!("{}.16.wav.mp4", file_path.clone()));
+}
+
 // Patch linux whisper WTS files
 pub fn patch_whisper_wts(file_path: String) -> Result<(), crate::thalamus::services::Error>{
     let mut data = std::fs::read_to_string(format!("{}", file_path).as_str())?;
@@ -140,21 +186,12 @@ pub fn install() -> std::io::Result<()> {
 
     #[cfg(target_arch = "x86_64")]{
         log::info!("Installing whisper (x86_64) /opt/thalamus/bin/whisper");
-        let data = include_bytes!("../../../packages/whisper/main-amd64");
+        let data = include_bytes!("../../../packages/whisper/linux/amd64/native/main");
         let mut pos = 0;
         let mut buffer = File::create("/opt/thalamus/bin/whisper")?;
         while pos < data.len() {
             let bytes_written = buffer.write(&data[pos..])?;
             pos += bytes_written;
-        }
-
-        match crate::thalamus::tools::mv("/opt/thalamus/models/models/*", "/opt/thalamus/models/"){
-            Ok(_) => (),
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to move model data"))
-        }
-        match crate::thalamus::tools::rmd("/opt/thalamus/models/models/"){
-            Ok(_) => (),
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to cleanup models data"))
         }
 
 
@@ -198,16 +235,6 @@ pub fn install() -> std::io::Result<()> {
             pos += bytes_written;
         }
     
-       
-
-        match crate::thalamus::tools::mv("/opt/thalamus/models/models/*", "/opt/thalamus/models/"){
-            Ok(_) => (),
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to move model data"))
-        }
-        match crate::thalamus::tools::rmd("/opt/thalamus/models/models/"){
-            Ok(_) => (),
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to cleanup models data"))
-        }
 
         // Fix permissions
         match crate::thalamus::tools::fix_permissions("/opt/thalamus/models"){
@@ -298,6 +325,28 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
     }
 
 
+    if request.url() == "/api/services/whisper/vwav"{
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+
+        let input = post_input!(request, {
+            speech: BufferedFile,
+            method: String
+        })?;
+
+        let tmp_file_path = format!("/opt/thalamus/tmp/{}.wav", timestamp.clone());
+        let mut file = File::create(tmp_file_path.clone())?;
+        file.write_all(&input.speech.data)?;
+
+        let output_path = whisper_vwav(tmp_file_path, input.method.as_str())?;
+
+        let outfile = File::open(output_path.as_str()).unwrap();
+
+        let mut response = Response::from_file("video/mp4", outfile);
+        return Ok(response);
+       
+                
+    }
 
     
     return Ok(Response::empty_404());

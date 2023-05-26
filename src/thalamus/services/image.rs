@@ -8,8 +8,7 @@
 // Licensed under GPLv3....see LICENSE file.
 // pub mod nst;
 pub mod srgan;
-
-
+pub mod ocnn;
 
 
 
@@ -33,6 +32,15 @@ pub fn install() -> std::io::Result<()> {
 }
 
 
-pub fn handle(_request: &Request) -> Result<Response, crate::thalamus::http::Error> {
+pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Error> {
+    
+    if request.url().contains("/api/services/image/ocnn"){
+        return Ok(crate::thalamus::services::image::ocnn::handle(request)?);
+    }
+    
+    if request.url().contains("/api/services/image/srgan"){
+        return Ok(crate::thalamus::services::image::srgan::handle(request)?);
+    }
+
     return Ok(Response::empty_404());
 }

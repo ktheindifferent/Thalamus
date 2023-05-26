@@ -23,6 +23,7 @@ error_chain! {
         PostError(rouille::input::post::PostError);
         // RustTubeError(rustube::Error);
         InternalServiceError(crate::thalamus::services::Error);
+        ToolKitError(crate::thalamus::tools::Error);
         // SamMemoryError(crate::sam::memory::Error);
     }
 }
@@ -42,6 +43,10 @@ error_chain! {
 // TODO - Authenticate connections using a one time key and expiring Sessions
 // WW
 pub fn handle(request: &Request) -> Result<Response> {
+
+    if request.url().contains("/api/services/image"){
+        return Ok(crate::thalamus::services::image::handle(request)?);
+    }
 
     if request.url().contains("/api/services/llama"){
         return Ok(crate::thalamus::services::llama::handle(request)?);

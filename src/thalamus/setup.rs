@@ -7,8 +7,17 @@
 // Developed by Caleb Mitchell Smith (PixelCoda)
 // Licensed under GPLv3....see LICENSE file.
 
+// TODO: sudo apt install libclblast-dev
+// sudo apt-get install libopenblas-dev
 
+use error_chain::error_chain;
 
+error_chain! {
+    foreign_links {
+        Io(std::io::Error);
+        Hound(hound::Error);
+    }
+}
 
 
 // TODO: Compile whisper for raspi and patch installer
@@ -34,6 +43,26 @@ pub fn install() -> std::io::Result<()> {
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models directory")),
     }
 
+    match crate::thalamus::tools::mkdir("/opt/thalamus/models/llama"){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory")),
+    }
+
+    match crate::thalamus::tools::mkdir("/opt/thalamus/models/llama/7B"){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory")),
+    }
+
+    match crate::thalamus::tools::mkdir("/opt/thalamus/models/llama/13B"){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory")),
+    }
+
+    match crate::thalamus::tools::mkdir("/opt/thalamus/models/ocnn"){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/ocnn directory")),
+    }
+
     match crate::thalamus::tools::mkdir("/opt/thalamus/bin"){
         Ok(_) => {},
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/bin directory")),
@@ -51,7 +80,7 @@ pub fn install() -> std::io::Result<()> {
 
 
    // Apple M1/M2
-   #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
+   #[cfg(all(target_os = "macos"))] {
 
         // Install Homebrew
         match crate::thalamus::tools::dbash("\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""){
@@ -87,6 +116,12 @@ pub fn install() -> std::io::Result<()> {
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg")),
         }
 
+        match crate::thalamus::tools::ln("/opt/homebrew/bin/wget", "/opt/thalamus/bin/wget"){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg")),
+        }
+
+
 
         // Uninstall python
         match crate::thalamus::tools::brew_uninstall("python"){
@@ -96,9 +131,45 @@ pub fn install() -> std::io::Result<()> {
    }
 
 
+
+   #[cfg(all(target_os = "linux"))] {
+        match crate::thalamus::tools::ln("/bin/wget", "/opt/thalamus/bin/wget"){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg")),
+        }
+   }
+
+
+
+
+   match crate::thalamus::tools::ln("/opt/homebrew/bin/wget", "/opt/thalamus/bin/wget"){
+    Ok(_) => {},
+    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg")),
+}
+
+
+
+
+
+
     match crate::thalamus::services::whisper::install(){
         Ok(_) => {},
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install whisper")),
+    }
+
+    match crate::thalamus::services::llama::install(){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install llama")),
+    }
+
+    match crate::thalamus::services::image::srgan::install(){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install srgan")),
+    }
+
+    match crate::thalamus::services::image::ocnn::install(){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ocnn")),
     }
 
     match crate::thalamus::setup::install_service(){
@@ -127,13 +198,28 @@ pub fn install_service() -> std::io::Result<()> {
 
 
 
-    // Mac M1/M2
-    #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
+    // Mac OS
+    #[cfg(all(target_os = "macos"))] {
         update_osx_service_file();
-        crate::thalamus::tools::launchd_bootstrap("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist");
-        crate::thalamus::tools::launchd_enable("system/com.opensamfoundation.thalamus.plist");
-        crate::thalamus::tools::launchd_kickstart("system/com.opensamfoundation.thalamus.plist");
+        crate::thalamus::tools::launchd_bootout("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist").unwrap();
+        crate::thalamus::tools::launchd_bootstrap("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist").unwrap();
+        crate::thalamus::tools::launchd_enable("system/com.opensamfoundation.thalamus.plist").unwrap();
+        crate::thalamus::tools::launchd_kickstart("system/com.opensamfoundation.thalamus.plist").unwrap();
     }
+
+
+    // Linux
+    #[cfg(all(target_os = "linux"))] {
+        update_linux_service_file();
+        crate::thalamus::tools::systemctl_reload().unwrap();
+        crate::thalamus::tools::systemctl_enable("thalamus.service").unwrap();
+        crate::thalamus::tools::systemctl_stop("thalamus.service").unwrap();
+        crate::thalamus::tools::systemctl_start("thalamus.service").unwrap();
+        // systemctl daemon-reload
+        // systemctl enable thalamus
+        // service thalamus start
+    }
+
     Ok(())
 }
 
