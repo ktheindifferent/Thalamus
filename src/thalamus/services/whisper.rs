@@ -216,7 +216,7 @@ pub fn install() -> std::io::Result<()> {
     // Apple M1/M2
     #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
         log::info!("Installing whisper (aarch64) /opt/thalamus/bin");
-        let data = include_bytes!("../../../packages/whisper/apple/main");
+        let data = include_bytes!("../../../packages/whisper/apple/aarch64/main");
         let mut pos = 0;
         let mut buffer = File::create("/opt/thalamus/bin/whisper")?;
         while pos < data.len() {
