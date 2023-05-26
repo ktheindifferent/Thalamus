@@ -12,7 +12,7 @@
 // - Move wget functions to rust native library (DONE)
 // - Move all cmd functions to rust native library (DONE)
 // - Automatic Service Installer for Unix (DONE)
-// - whisper vwav generation 
+// - whisper vwav generation (DONE)
 // - llamma.cpp support (DONE)
 // - SRGAN (DONE)
 // - internal library
@@ -94,28 +94,43 @@ fn main() {
     
     sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
     
-    match crate::thalamus::setup::install(){
-        Ok(_) => log::info!("Installed thalamus"),
-        Err(e) => log::error!("Error installing thalamus: {}", e),
+
+
+    match std::env::current_exe() {
+        Ok(exe_path) => {
+            let current_exe_path = format!("{}", exe_path.display());
+
+            if current_exe_path.as_str() == "/opt/thalamus/bin"{
+                let server = Server::new("0.0.0.0:8050", |request| {
+                    match crate::thalamus::http::handle(request){
+                        Ok(request) => {
+                            log::info!("{:?}", request);
+                            return request;
+                        },
+                        Err(err) => {
+                            log::error!("HTTP_ERROR: {}", err);
+                            return Response::empty_404();
+                        }
+                    }
+                }).unwrap().pool_size(6);
+            
+                loop {
+                    server.poll();
+                }
+            } else {
+                match crate::thalamus::setup::install(){
+                    Ok(_) => log::info!("Installed thalamus"),
+                    Err(e) => log::error!("Error installing thalamus: {}", e),
+                };
+            }
+        },
+        Err(e) => log::error!("failed to get current exe path: {e}"),
     };
 
 
-    let server = Server::new("0.0.0.0:8050", |request| {
-        match crate::thalamus::http::handle(request){
-            Ok(request) => {
-                log::info!("{:?}", request);
-                return request;
-            },
-            Err(err) => {
-                log::error!("HTTP_ERROR: {}", err);
-                return Response::empty_404();
-            }
-        }
-    }).unwrap().pool_size(6);
 
-    loop {
-        server.poll();
-    }
+
+
 }
 
 

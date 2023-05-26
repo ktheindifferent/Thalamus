@@ -201,23 +201,44 @@ pub fn install_service() -> std::io::Result<()> {
     // Mac OS
     #[cfg(all(target_os = "macos"))] {
         update_osx_service_file();
-        crate::thalamus::tools::launchd_bootout("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist").unwrap();
-        crate::thalamus::tools::launchd_bootstrap("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist").unwrap();
-        crate::thalamus::tools::launchd_enable("system/com.opensamfoundation.thalamus.plist").unwrap();
-        crate::thalamus::tools::launchd_kickstart("system/com.opensamfoundation.thalamus.plist").unwrap();
+        match crate::thalamus::tools::launchd_bootout("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist"){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to launch thalamus as a service")),
+        }
+        match crate::thalamus::tools::launchd_bootstrap("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist"){
+            Ok(_) => {},
+                        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to bootstrap thalamus as a service")),
+        }
+        match crate::thalamus::tools::launchd_enable("system/com.opensamfoundation.thalamus.plist"){
+            Ok(_) => {},
+                        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to enable thalamus as a service")),
+        }
+        match crate::thalamus::tools::launchd_kickstart("system/com.opensamfoundation.thalamus.plist"){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to kickstart thalamus as a service")),
+        }
     }
 
 
     // Linux
     #[cfg(all(target_os = "linux"))] {
         update_linux_service_file();
-        crate::thalamus::tools::systemctl_reload().unwrap();
-        crate::thalamus::tools::systemctl_enable("thalamus.service").unwrap();
-        crate::thalamus::tools::systemctl_stop("thalamus.service").unwrap();
-        crate::thalamus::tools::systemctl_start("thalamus.service").unwrap();
-        // systemctl daemon-reload
-        // systemctl enable thalamus
-        // service thalamus start
+        match crate::thalamus::tools::systemctl_reload(){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to reload systemctl")),
+        }
+        match crate::thalamus::tools::systemctl_enable("thalamus.service"){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to enable thalamus as a service")),
+        }
+        match crate::thalamus::tools::systemctl_stop("thalamus.service"){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to stop thalamus as a service")),
+        }
+        match crate::thalamus::tools::systemctl_start("thalamus.service"){
+            Ok(_) => {},
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to start thalamus as a service")),
+        }
     }
 
     Ok(())
