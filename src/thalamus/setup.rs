@@ -260,10 +260,7 @@ pub fn update_osx_service_file(){
     data.push_str("<key>RunAtLoad</key>\n");
     data.push_str("<true/>\n");
     data.push_str("<key>KeepAlive</key>\n");
-    data.push_str("<dict>\n");
-    data.push_str("<key>SuccessfulExit</key>\n");
-    data.push_str("<false/>\n");
-    data.push_str("</dict>\n");
+    data.push_str("<true/>\n");
     data.push_str("</dict>\n");
     data.push_str("</plist>\n");
 
