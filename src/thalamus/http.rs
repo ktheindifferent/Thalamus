@@ -12,7 +12,10 @@
 // use std::thread;
 use rouille::Request;
 use rouille::Response;
+use serde::{Serialize, Deserialize};
 
+// store application version as a const
+const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 use error_chain::error_chain;
 error_chain! {
@@ -38,11 +41,18 @@ error_chain! {
 //     });
 // }
 
-
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct VersionHeader {
+    pub version: String,
+}
 
 // TODO - Authenticate connections using a one time key and expiring Sessions
 // WW
 pub fn handle(request: &Request) -> Result<Response> {
+
+    if request.url().contains("/api/thalamus/version"){
+        return Ok(Response::json(&VersionHeader{version: VERSION.ok_or("UNKNOWN")?.to_string()}));
+    }
 
     if request.url().contains("/api/services/image"){
         return Ok(crate::thalamus::services::image::handle(request)?);
@@ -57,5 +67,12 @@ pub fn handle(request: &Request) -> Result<Response> {
     }
 
 
-    return Ok(Response::empty_404());
+    return Ok(Response::html(format!("
+    <p> ████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ </p>
+    <p>    ██    ██   ██ ██   ██ ██      ██   ██ ████  ████ ██    ██ ██      </p>
+    <p>    ██    ███████ ███████ ██      ███████ ██ ████ ██ ██    ██ ███████ </p>
+    <p>    ██    ██   ██ ██   ██ ██      ██   ██ ██  ██  ██ ██    ██      ██ </p>
+    <p>    ██    ██   ██ ██   ██ ███████ ██   ██ ██      ██  ██████  ███████ </p>
+    <p>Version: {}</p>
+    ", VERSION.ok_or("UNKNOWN")?.to_string())));
 }
