@@ -214,19 +214,19 @@ pub fn install_service() -> Result<()> {
         update_osx_service_file();
         match crate::thalamus::tools::launchd_bootout("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to launch thalamus as a service")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to launch thalamus as a service").into()),
         }
         match crate::thalamus::tools::launchd_bootstrap("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist"){
             Ok(_) => {},
-                        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to bootstrap thalamus as a service")),
+                        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to bootstrap thalamus as a service").into()),
         }
         match crate::thalamus::tools::launchd_enable("system/com.opensamfoundation.thalamus.plist"){
             Ok(_) => {},
-                        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to enable thalamus as a service")),
+                        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to enable thalamus as a service").into()),
         }
         match crate::thalamus::tools::launchd_kickstart("system/com.opensamfoundation.thalamus.plist"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to kickstart thalamus as a service")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to kickstart thalamus as a service").into()),
         }
     }
 
