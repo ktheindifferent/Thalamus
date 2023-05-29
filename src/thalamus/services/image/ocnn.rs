@@ -21,7 +21,7 @@ pub fn handle(_request: &Request) -> Result<Response, crate::thalamus::http::Err
     return Ok(Response::empty_404());
 }
 
-pub fn install() -> std::io::Result<()> {
+pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
     log::info!("Unpacking OCNN: birds.tflite");
     let data = include_bytes!("../../../../packages/ocnn/birds/birds.tflite");

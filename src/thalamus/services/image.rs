@@ -18,7 +18,7 @@ use rouille::Response;
 
 
 
-pub fn install() -> std::io::Result<()> {
+pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     // match nst::install(){
     //     Ok(_) => {
     //         log::info!("NST installed successfully");

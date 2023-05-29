@@ -113,16 +113,32 @@ pub fn patch_whisper_wts(file_path: String) -> Result<(), crate::thalamus::servi
 
 
 // TODO: Compile whisper for raspi and patch installer
-pub fn install() -> std::io::Result<()> {
+pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
+    
     if !Path::new("/opt/thalamus/models/ggml-tiny.bin").exists(){
         log::warn!("ggml-tiny.bin is missing.....downloading it from https://huggingface.co/");
         match crate::thalamus::tools::download("/opt/thalamus/models/ggml-tiny.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin"){
             Ok(_) => {
                 log::info!("Stored model ggml-tiny.bin in /opt/thalamus/models/");
             },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download tiny whisper model"))
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download tiny whisper model").into())
         }
+    } else {
+        if 77691713 != crate::thalamus::tools::get_file_size("/opt/thalamus/models/ggml-tiny.bin")?{
+            // hash check
+            // be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21
+            if crate::thalamus::tools::hash_check("/opt/thalamus/models/ggml-tiny.bin").unwrap() != "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21".to_string(){
+                log::warn!("ggml-tiny.bin failed the hash check.....re-downloading it from https://huggingface.co/");
+                match crate::thalamus::tools::download("/opt/thalamus/models/ggml-tiny.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin"){
+                    Ok(_) => {
+                        log::info!("Stored model ggml-tiny.bin in /opt/thalamus/models/");
+                    },
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download tiny whisper model").into())
+                }
+            }
+        }
+
     }
 
     if !Path::new("/opt/thalamus/models/ggml-base.bin").exists(){
@@ -131,7 +147,21 @@ pub fn install() -> std::io::Result<()> {
             Ok(_) => {
                 log::info!("Stored model ggml-base.bin in /opt/thalamus/models/");
             },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model"))
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
+        }
+    } else {
+        if 147951465 != crate::thalamus::tools::get_file_size("/opt/thalamus/models/ggml-base.bin")?{
+            // hash check
+            // 60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe
+            if crate::thalamus::tools::hash_check("/opt/thalamus/models/ggml-base.bin").unwrap() != "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe".to_string(){
+                log::warn!("ggml-base.bin failed the hash check.....re-downloading it from https://huggingface.co/");
+                match crate::thalamus::tools::download("/opt/thalamus/models/ggml-base.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"){
+                    Ok(_) => {
+                        log::info!("Stored model ggml-base.bin in /opt/thalamus/models/");
+                    },
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
+                }
+            }
         }
     }
 
@@ -141,7 +171,21 @@ pub fn install() -> std::io::Result<()> {
             Ok(_) => {
                 log::info!("Stored model ggml-medium.bin in /opt/thalamus/models/");
             },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download medium whisper model"))
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download medium whisper model").into())
+        }
+    } else {
+        if 1533763059 != crate::thalamus::tools::get_file_size("/opt/thalamus/models/ggml-medium.bin")?{
+            // hash check
+            // 6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208
+            if crate::thalamus::tools::hash_check("/opt/thalamus/models/ggml-medium.bin").unwrap() != "6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208".to_string(){
+                log::warn!("ggml-medium.bin failed the hash check.....re-downloading it from https://huggingface.co/");
+                match crate::thalamus::tools::download("/opt/thalamus/models/ggml-medium.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin"){
+                    Ok(_) => {
+                        log::info!("Stored model ggml-medium.bin in /opt/thalamus/models/");
+                    },
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download medium whisper model").into())
+                }
+            }
         }
     }
 
@@ -151,7 +195,21 @@ pub fn install() -> std::io::Result<()> {
             Ok(_) => {
                 log::info!("Stored model ggml-large.bin in /opt/thalamus/models/");
             },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download large whisper model"))
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download large whisper model").into())
+        }
+    } else {
+        if 3094623691 != crate::thalamus::tools::get_file_size("/opt/thalamus/models/ggml-large.bin")?{
+            // hash check
+            // 9a423fe4d40c82774b6af34115b8b935f34152246eb19e80e376071d3f999487
+            if crate::thalamus::tools::hash_check("/opt/thalamus/models/ggml-large.bin").unwrap() != "9a423fe4d40c82774b6af34115b8b935f34152246eb19e80e376071d3f999487".to_string(){
+                log::warn!("ggml-large.bin failed the hash check.....re-downloading it from https://huggingface.co/");
+                match crate::thalamus::tools::download("/opt/thalamus/models/ggml-large.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large.bin"){
+                    Ok(_) => {
+                        log::info!("Stored model ggml-large.bin in /opt/thalamus/models/");
+                    },
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download medium whisper model").into())
+                }
+            }
         }
     }
 
@@ -206,7 +264,7 @@ pub fn install() -> std::io::Result<()> {
     
         match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/ffmpeg"){
             Ok(_) => (),
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod ffmpeg"))
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod ffmpeg").into())
         }
 
 
@@ -239,7 +297,7 @@ pub fn install() -> std::io::Result<()> {
         // Fix permissions
         match crate::thalamus::tools::fix_permissions("/opt/thalamus/models"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod /opt/thalamus")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod /opt/thalamus").into()),
         }
         match crate::thalamus::tools::mark_as_executable("/opt/thalamus/models/coreml.sh"){
             Ok(_) => {},
@@ -274,7 +332,7 @@ pub fn install() -> std::io::Result<()> {
     
     match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/whisper"){
         Ok(_) => (),
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod whisper"))
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod whisper").into())
     }
 
     Ok(())

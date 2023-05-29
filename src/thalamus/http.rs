@@ -14,6 +14,7 @@ use rouille::Request;
 use rouille::Response;
 use serde::{Serialize, Deserialize};
 
+
 // store application version as a const
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
@@ -44,6 +45,7 @@ error_chain! {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct VersionHeader {
     pub version: String,
+    pub pid: String,
 }
 
 // TODO - Authenticate connections using a one time key and expiring Sessions
@@ -51,7 +53,8 @@ pub struct VersionHeader {
 pub fn handle(request: &Request) -> Result<Response> {
 
     if request.url().contains("/api/thalamus/version"){
-        return Ok(Response::json(&VersionHeader{version: VERSION.ok_or("UNKNOWN")?.to_string()}));
+        let pid = std::fs::read_to_string("/opt/thalamus/pid").expect("Unable to read file");
+        return Ok(Response::json(&VersionHeader{version: VERSION.ok_or("UNKNOWN")?.to_string(), pid: pid}));
     }
 
     if request.url().contains("/api/services/image"){

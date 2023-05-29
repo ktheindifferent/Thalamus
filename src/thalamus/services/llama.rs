@@ -48,7 +48,7 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
     return Ok(Response::empty_404());
 }
 
-pub fn install() -> std::io::Result<()> {
+pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
 
 
@@ -92,7 +92,7 @@ pub fn install() -> std::io::Result<()> {
             Ok(_) => {
                 log::info!("Stored model in /opt/thalamus/models/");
             },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model"))
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
         }
     }
 

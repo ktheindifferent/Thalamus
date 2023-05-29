@@ -13,6 +13,12 @@ use std::fs::File;
 use std::io::Write;
 use std::process::{Command, Stdio};
 use error_chain::error_chain;
+use sha2::{Sha256, Digest};
+use std::{io, fs};
+
+
+pub mod cidr;
+pub mod netscan;
 
 error_chain! {
     foreign_links {
@@ -28,6 +34,31 @@ pub fn python3(command: String) -> String{
     .unwrap();
     return String::from_utf8_lossy(&cmd.stdout).to_string();
 }
+
+pub fn hash_check(file_path: &str) -> Result<String>{
+    let mut f = File::open(file_path)?;
+
+    let x = f.metadata().unwrap().len();
+    log::warn!("File size: {}", x);
+    log::warn!("hasging file: {}", file_path);
+    let mut hasher = Sha256::new();
+    let mut file = fs::File::open(file_path)?;
+
+    let bytes_written = io::copy(&mut file, &mut hasher)?;
+    let hashh: String = format!("{:X}", hasher.finalize());
+    log::warn!("done hasging file: {}", file_path);
+    return Ok(hashh.to_string().to_lowercase());
+}
+
+
+pub fn get_file_size(file_path: &str) -> Result<i64>{
+    let mut f = File::open(file_path)?;
+
+    let x = f.metadata()?.len();
+   
+    return Ok(x as i64);
+}
+
 
 // // pub fn idfk(command: &str) -> String {
 //     let child = Command::new("/bin/python3")

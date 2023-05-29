@@ -46,7 +46,7 @@ pub fn darknet_image_with_gpu(file_path: String) -> Result<String, String> {
 
 }
 
-pub fn install() -> std::io::Result<()> {
+pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     let data = include_bytes!("../../../scripts/darknet/darknet.zip");
 
     let mut pos = 0;

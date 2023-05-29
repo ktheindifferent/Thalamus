@@ -54,7 +54,7 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
     return Ok(Response::empty_404());
 }
 
-pub fn install() -> std::io::Result<()> {
+pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     #[cfg(all(target_arch = "x86_64", target_os = "linux"))] {
         log::info!("Unpacking SRGAN");
         let data = include_bytes!("../../../../packages/srgan/linux/amd64/srgan");

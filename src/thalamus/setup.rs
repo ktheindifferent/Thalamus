@@ -9,6 +9,9 @@
 
 // TODO: sudo apt install libclblast-dev
 // sudo apt-get install libopenblas-dev
+use rand::{thread_rng, Rng};
+use rand::distributions::Alphanumeric;
+use std::path::Path;
 
 use error_chain::error_chain;
 
@@ -16,66 +19,67 @@ error_chain! {
     foreign_links {
         Io(std::io::Error);
         Hound(hound::Error);
+        ToolKitError(crate::thalamus::tools::Error);
     }
 }
 
 
 // TODO: Compile whisper for raspi and patch installer
-pub fn install() -> std::io::Result<()> {
+pub fn install() -> Result<()> {
     
     match crate::thalamus::tools::mkdir("/opt"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt directory")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt directory").into()),
     }
 
     match crate::thalamus::tools::mkdir("/opt/thalamus"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus directory")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus directory").into()),
     }
 
     match crate::thalamus::tools::fix_permissions("/opt/thalamus"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod /opt/thalamus")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod /opt/thalamus").into()),
     }
 
     match crate::thalamus::tools::mkdir("/opt/thalamus/models"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models directory")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models directory").into()),
     }
 
     match crate::thalamus::tools::mkdir("/opt/thalamus/models/llama"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory").into()),
     }
 
     match crate::thalamus::tools::mkdir("/opt/thalamus/models/llama/7B"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory").into()),
     }
 
     match crate::thalamus::tools::mkdir("/opt/thalamus/models/llama/13B"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory").into()),
     }
 
     match crate::thalamus::tools::mkdir("/opt/thalamus/models/ocnn"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/ocnn directory")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/ocnn directory").into()),
     }
 
     match crate::thalamus::tools::mkdir("/opt/thalamus/bin"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/bin directory")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/bin directory").into()),
     }
 
     match crate::thalamus::tools::mkdir("/opt/thalamus/tmp"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/tmp directory")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/tmp directory").into()),
     }
 
     match crate::thalamus::tools::mkdir("/opt/thalamus/fonts"){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/fonts directory")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/fonts directory").into()),
     }
 
 
@@ -135,7 +139,7 @@ pub fn install() -> std::io::Result<()> {
    #[cfg(all(target_os = "linux"))] {
         match crate::thalamus::tools::ln("/bin/wget", "/opt/thalamus/bin/wget"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
         }
    }
 
@@ -144,7 +148,7 @@ pub fn install() -> std::io::Result<()> {
 
    match crate::thalamus::tools::ln("/opt/homebrew/bin/wget", "/opt/thalamus/bin/wget"){
     Ok(_) => {},
-    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg")),
+    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
 }
 
 
@@ -154,27 +158,34 @@ pub fn install() -> std::io::Result<()> {
 
     match crate::thalamus::services::whisper::install(){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install whisper")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install whisper").into()),
     }
 
     match crate::thalamus::services::llama::install(){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install llama")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install llama").into()),
     }
 
     match crate::thalamus::services::image::srgan::install(){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install srgan")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install srgan").into()),
     }
 
     match crate::thalamus::services::image::ocnn::install(){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ocnn")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ocnn").into()),
     }
 
     match crate::thalamus::setup::install_service(){
         Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install thalamus as a service")),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install thalamus as a service").into()),
+    }
+
+
+
+    if !Path::new("/opt/thalamus/pid").exists() {
+        let pid: String = thread_rng().sample_iter(&Alphanumeric).take(15).map(char::from).collect();
+        std::fs::write("/opt/thalamus/pid", pid).expect("Unable to write file");
     }
 
     Ok(())
@@ -182,7 +193,7 @@ pub fn install() -> std::io::Result<()> {
 
 
 
-pub fn install_service() -> std::io::Result<()> {
+pub fn install_service() -> Result<()> {
 
 
     match std::env::current_exe() {
@@ -190,7 +201,7 @@ pub fn install_service() -> std::io::Result<()> {
             let current_exe_path = format!("{}", exe_path.display());
             match crate::thalamus::tools::cp(current_exe_path.as_str(), "/opt/thalamus/bin"){
                 Ok(_) => {},
-                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to copy thalamus binary")),
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to copy thalamus binary").into()),
             }
         },
         Err(e) => log::error!("failed to get current exe path: {e}"),
@@ -225,19 +236,19 @@ pub fn install_service() -> std::io::Result<()> {
         update_linux_service_file();
         match crate::thalamus::tools::systemctl_reload(){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to reload systemctl")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to reload systemctl").into()),
         }
         match crate::thalamus::tools::systemctl_enable("thalamus.service"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to enable thalamus as a service")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to enable thalamus as a service").into()),
         }
         match crate::thalamus::tools::systemctl_stop("thalamus.service"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to stop thalamus as a service")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to stop thalamus as a service").into()),
         }
         match crate::thalamus::tools::systemctl_start("thalamus.service"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to start thalamus as a service")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to start thalamus as a service").into()),
         }
     }
 
