@@ -113,7 +113,7 @@ pub fn install() -> Result<()> {
         // Install ffmpeg
         match crate::thalamus::tools::brew_install("ffmpeg"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ffmpeg")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ffmpeg").into()),
         }
         match crate::thalamus::tools::ln("/opt/homebrew/bin/ffmpeg", "/opt/thalamus/bin/ffmpeg"){
             Ok(_) => {},
