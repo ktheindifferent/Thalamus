@@ -89,25 +89,25 @@ pub fn install() -> Result<()> {
         // Install Homebrew
         match crate::thalamus::tools::dbash("\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install homebrew")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install homebrew").into()),
         }
 
         // Install Miniconda
         match crate::thalamus::tools::brew_install("miniconda"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install miniconda")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install miniconda").into()),
         }
 
         // Install openssl@1.1
         match crate::thalamus::tools::brew_install("openssl@1.1"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1").into()),
         }
 
         // Install wget
         match crate::thalamus::tools::brew_install("wget"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1").into()),
         }
 
         // Install ffmpeg
@@ -117,12 +117,12 @@ pub fn install() -> Result<()> {
         }
         match crate::thalamus::tools::ln("/opt/homebrew/bin/ffmpeg", "/opt/thalamus/bin/ffmpeg"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
         }
 
         match crate::thalamus::tools::ln("/opt/homebrew/bin/wget", "/opt/thalamus/bin/wget"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
         }
 
 
@@ -130,7 +130,7 @@ pub fn install() -> Result<()> {
         // Uninstall python
         match crate::thalamus::tools::brew_uninstall("python"){
             Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to uninstall python")),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to uninstall python").into()),
         }
    }
 
