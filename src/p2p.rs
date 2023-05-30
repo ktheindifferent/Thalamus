@@ -88,7 +88,7 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
     // env_logger::init();
 
     let key_pair = identity::Keypair::generate_ed25519();
-    let rendezvous_point_address = "/ip4/127.0.0.1/tcp/62649".parse::<Multiaddr>().unwrap();
+    let rendezvous_point_address = "/ip4/192.168.86.246/tcp/62649".parse::<Multiaddr>().unwrap();
     let rendezvous_point = "12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN"
         .parse()
         .unwrap();
@@ -112,7 +112,7 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
     )
     .build();
 
-    let external_address = "/ip4/127.0.0.1/tcp/0".parse::<Multiaddr>().unwrap();
+    let external_address = "/ip4/0.0.0.0/tcp/0".parse::<Multiaddr>().unwrap();
     swarm.add_external_address(external_address, libp2p::swarm::AddressScore::Infinite);
 
     log::warn!("Local peer id: {}", swarm.local_peer_id());
