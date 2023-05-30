@@ -108,8 +108,8 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
     // env_logger::init();
 
     let key_pair = identity::Keypair::generate_ed25519();
-    let rendezvous_point_address = "/ip4/192.168.86.246/tcp/62649".parse::<Multiaddr>().unwrap();
-    let rendezvous_point = "12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN".parse().unwrap();
+    let rendezvous_point_address = "/ip4/0.0.0.0/tcp/62649".parse::<Multiaddr>().unwrap();
+    // let rendezvous_point = "12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN".parse().unwrap();
 
     let mut swarm = SwarmBuilder::with_tokio_executor(
         tcp::tokio::Transport::default()
@@ -244,12 +244,12 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
                         log::debug!("Unhandled {:?}", other);
                     }
             },
-            _ = discover_tick.tick(), if cookie.is_some() =>
-                swarm.behaviour_mut().rendezvous.discover(
-                    Some(rendezvous::Namespace::new(NAMESPACE.to_string()).unwrap()),
-                    cookie.clone(),
-                    None,
-                    rendezvous_point)
+            _ = discover_tick.tick(), if cookie.is_some() => {}
+                // swarm.behaviour_mut().rendezvous.discover(
+                //     Some(rendezvous::Namespace::new(NAMESPACE.to_string()).unwrap()),
+                //     cookie.clone(),
+                //     None,
+                //     rendezvous_point)
         }
     }
 }
