@@ -21,6 +21,8 @@ pub async fn init_p2p_server() -> Result<(), Box<dyn Error>> {
 
     let key_pair = identity::Keypair::generate_ed25519();
 
+    log::info!("identity generated");
+
     let mut swarm = SwarmBuilder::with_tokio_executor(
         tcp::tokio::Transport::default()
             .upgrade(Version::V1Lazy)
@@ -68,10 +70,10 @@ pub async fn init_p2p_server() -> Result<(), Box<dyn Error>> {
             })) => {
                 match rtt {
                     libp2p::ping::Success::Ping{rtt: stt} => {
-                        log::warn!("Ping to {} in {:?}", peer, stt);
+                        log::warn!("Server Ping to {} in {:?}", peer, stt);
                     },
                     libp2p::ping::Success::Pong{} => {
-
+                        log::warn!("Server Pong from {}", peer);
                     }
                 }
                 
@@ -141,7 +143,7 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
     loop {
         tokio::select! {
                 event = swarm.select_next_some() => match event {
-                    SwarmEvent::ConnectionEstablished { peer_id, .. } if peer_id == rendezvous_point => {
+                    SwarmEvent::ConnectionEstablished { peer_id, .. } => {
                         log::warn!(
                             "Connected to rendezvous point, discovering nodes in '{}' namespace ...",
                             NAMESPACE
@@ -151,12 +153,12 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
                             Some(rendezvous::Namespace::new(NAMESPACE.to_string()).unwrap()),
                             None,
                             None,
-                            rendezvous_point,
+                            peer_id,
                         );
 
                         swarm.behaviour_mut().rendezvous.register(
                             rendezvous::Namespace::from_static("rendezvous"),
-                            rendezvous_point,
+                            peer_id,
                             None,
                         );
 
@@ -198,7 +200,7 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
                         log::warn!("Sent identify info to {peer_id:?}");
                         swarm.behaviour_mut().rendezvous.register(
                             rendezvous::Namespace::from_static("rendezvous"),
-                            rendezvous_point,
+                            peer_id,
                             None,
                         );
                     }
@@ -227,7 +229,7 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
                         peer,
                         result: Ok(rtt),
                         ..
-                    })) if peer != rendezvous_point => {
+                    })) => {
                         match rtt {
                             libp2p::ping::Success::Ping{rtt: stt} => {
                                 log::warn!("Ping to {} in {:?}", peer, stt);
@@ -247,8 +249,7 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
                     Some(rendezvous::Namespace::new(NAMESPACE.to_string()).unwrap()),
                     cookie.clone(),
                     None,
-                    rendezvous_point
-                    )
+                    rendezvous_point)
         }
     }
 }
