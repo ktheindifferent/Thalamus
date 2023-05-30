@@ -32,14 +32,23 @@ const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 use std::error::Error;
 
 
-
-
-pub fn init(){
+pub fn preinit(){
     // cls
     clearscreen::clear().unwrap();
 
 
-
+    sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
+    
+    if Path::new("/opt/thalamus/").exists() {
+        let touch_status = crate::thalamus::tools::touch("/opt/thalamus/output.log".to_string());
+        if touch_status.is_ok() {
+            SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).with_output_file("/opt/thalamus/output.log".to_string()).init().unwrap();
+        } else {
+            SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
+        }
+    } else {
+        simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
+    }
 
     // Print Application Art and Version Information
     println!("████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ ");
@@ -52,23 +61,14 @@ pub fn init(){
         Some(v) => println!("Version: {}", v),
         None => println!("Version: Unknown"),
     };
+}
 
+pub fn init(){
 
-    if Path::new("/opt/thalamus/").exists() {
-        let touch_status = crate::thalamus::tools::touch("/opt/thalamus/output.log".to_string());
-        if touch_status.is_ok() {
-            SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Warn).with_timestamps(true).with_output_file("/opt/thalamus/output.log".to_string()).init().unwrap();
-        } else {
-            SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Warn).with_timestamps(true).init().unwrap();
-        }
-    } else {
-        simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Warn).with_timestamps(true).init().unwrap();
-    }
 
 
     
-    sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
-    
+
     match crate::thalamus::setup::install_client(){
         Ok(_) => log::warn!("Installed thalamus client"),
         Err(e) => log::error!("Error installing thalamus client: {}", e),

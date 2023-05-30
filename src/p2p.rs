@@ -61,6 +61,24 @@ pub async fn init_p2p_server() -> Result<(), Box<dyn Error>> {
                     registration.namespace
                 );
             }
+            SwarmEvent::Behaviour(ServerBehaviourEvent::Ping(ping::Event {
+                peer,
+                result: Ok(rtt),
+                ..
+            })) => {
+                match rtt {
+                    libp2p::ping::Success::Ping{rtt: stt} => {
+                        log::warn!("Ping to {} in {:?}", peer, stt);
+                    },
+                    libp2p::ping::Success::Pong{} => {
+
+                    }
+                }
+                
+            }
+            other => {
+                log::debug!("Unhandled {:?}", other);
+            }
             SwarmEvent::Behaviour(ServerBehaviourEvent::Rendezvous(
                 rendezvous::server::Event::DiscoverServed {
                     enquirer,
@@ -89,9 +107,7 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
 
     let key_pair = identity::Keypair::generate_ed25519();
     let rendezvous_point_address = "/ip4/192.168.86.246/tcp/62649".parse::<Multiaddr>().unwrap();
-    let rendezvous_point = "12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN"
-        .parse()
-        .unwrap();
+    let rendezvous_point = "12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN".parse().unwrap();
 
     let mut swarm = SwarmBuilder::with_tokio_executor(
         tcp::tokio::Transport::default()

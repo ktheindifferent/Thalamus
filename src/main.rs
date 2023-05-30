@@ -49,7 +49,7 @@ use std::thread;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
 
-    thalamus::init();
+    thalamus::preinit();
 
     task::spawn(async {
         thalamus::p2p::init_p2p_server().await;
@@ -59,9 +59,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         thalamus::p2p::init_p2p_client().await;
     });
 
-    thread::spawn(|| {
- 
+    thalamus::init();
 
+    thread::spawn(|| {
         let mut thalamus = thalamus::ThalamusClient::load().unwrap();
         thalamus.discover();
         thalamus.save();
