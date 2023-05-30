@@ -12,7 +12,8 @@
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 use std::path::Path;
-
+use std::fs::File;
+use std::io::Write;
 use error_chain::error_chain;
 
 error_chain! {
@@ -83,8 +84,8 @@ pub fn install() -> Result<()> {
     }
 
 
-   // Apple M1/M2
-   #[cfg(all(target_os = "macos"))] {
+    // Apple M1/M2
+    #[cfg(all(target_os = "macos"))] {
 
         // Install Homebrew
         match crate::thalamus::tools::dbash("\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""){
@@ -132,24 +133,24 @@ pub fn install() -> Result<()> {
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to uninstall python").into()),
         }
-   }
+    }
 
 
 
-   #[cfg(all(target_os = "linux"))] {
+    #[cfg(all(target_os = "linux"))] {
         match crate::thalamus::tools::ln("/bin/wget", "/opt/thalamus/bin/wget"){
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
         }
-   }
+    }
 
 
 
 
-   match crate::thalamus::tools::ln("/opt/homebrew/bin/wget", "/opt/thalamus/bin/wget"){
-    Ok(_) => {},
-    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
-}
+    match crate::thalamus::tools::ln("/opt/homebrew/bin/wget", "/opt/thalamus/bin/wget"){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
+    }
 
 
 
@@ -191,6 +192,47 @@ pub fn install() -> Result<()> {
     Ok(())
 }
 
+pub fn install_client() -> Result<()> {
+    match crate::thalamus::tools::mkdir("/opt"){
+        Ok(_) => {},
+        Err(_) => {},
+    }
+
+    match crate::thalamus::tools::mkdir("/opt/thalamusc"){
+        Ok(_) => {},
+        Err(_) => {},
+    }
+
+    match crate::thalamus::tools::mkdir("/opt/thalamusc/tmp"){
+        Ok(_) => {},
+        Err(_) => {},
+    }
+
+    match crate::thalamus::tools::fix_permissions("/opt/thalamusc"){
+        Ok(_) => {},
+        Err(_) => {},
+    }
+
+    log::info!("Unpacking test.wav...");
+    let data = include_bytes!("../../packages/whisper/test.wav");
+    let mut pos = 0;
+    let mut buffer = File::create("/opt/thalamusc/test.wav")?;
+    while pos < data.len() {
+        let bytes_written = buffer.write(&data[pos..])?;
+        pos += bytes_written;
+    }
+
+    log::info!("Unpacking test.jpg...");
+    let data = include_bytes!("../../packages/srgan/test.jpg");
+    let mut pos = 0;
+    let mut buffer = File::create("/opt/thalamusc/test.jpg")?;
+    while pos < data.len() {
+        let bytes_written = buffer.write(&data[pos..])?;
+        pos += bytes_written;
+    }
+
+    return Ok(());
+}
 
 
 pub fn install_service() -> Result<()> {

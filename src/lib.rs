@@ -5,26 +5,34 @@ use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 use local_ip_address::local_ip;
 use local_ip_address::list_afinet_netifas;
-
+use std::fs::File;
 use rouille::Server;
 use rouille::Response;
 use simple_logger::SimpleLogger;
 use std::path::Path;
+use serde_json::{Value};
+use std::sync::{Arc, Mutex};
 
 extern crate rouille;
 
 pub mod thalamus;
+pub mod p2p;
 
 // store application version as a const
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
-use error_chain::error_chain;
-error_chain! {
-    foreign_links {
-        Io(std::io::Error);
-        HttpRequest(reqwest::Error);
-    }
-}
+// use error_chain::error_chain;
+// error_chain! {
+//     foreign_links {
+//         Io(std::io::Error);
+//         HttpRequest(reqwest::Error);
+//         Json(serde_json::Error);
+//     }
+// }
+use std::error::Error;
+
+
+
 
 pub fn init(){
     // cls
@@ -61,7 +69,10 @@ pub fn init(){
     
     sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
     
-
+    match crate::thalamus::setup::install_client(){
+        Ok(_) => log::warn!("Installed thalamus client"),
+        Err(e) => log::error!("Error installing thalamus client: {}", e),
+    };
 
     match std::env::current_exe() {
         Ok(exe_path) => {
@@ -99,13 +110,13 @@ pub fn init(){
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThalamusClient {
-    pub nodes: Vec<ThalamusNode>,
+    pub nodes: Arc<Mutex<Vec<ThalamusNode>>>,
 }
 impl ThalamusClient {
     pub fn new() -> ThalamusClient {
         let x: Vec<ThalamusNode> = Vec::new();
         ThalamusClient { 
-            nodes: x,
+            nodes: Arc::new(Mutex::new(x)),
         }
     }
 
@@ -114,6 +125,8 @@ impl ThalamusClient {
     pub fn discover(&mut self){
 
         let network_interfaces = list_afinet_netifas().unwrap();
+
+        let nodex = Arc::clone(&self.nodes);
 
         for (name, ip) in network_interfaces.iter() {
             if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":"){
@@ -127,14 +140,16 @@ impl ThalamusClient {
                     let version = fetch_version(ipx.as_str());
                     match version {
                         Ok(v) => {
-                            let existing_index = self.nodes.iter().position(|r| r.pid == v.pid.to_string());
+                            let mut nodes = nodex.lock().unwrap();
+                            let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
                             match existing_index {
                                 Some(index) => {
                                 },
                                 None => {
-                                    self.nodes.push(ThalamusNode::new(v.pid.to_string(), v.version.to_string(), ipx, 8050));
+                                    nodes.push(ThalamusNode::new(v.pid.to_string(), v.version.to_string(), ipx, 8050));
                                 }
                             }
+                            std::mem::drop(nodes);
                         },
                         Err(e) => {
                             log::error!("fetch_thalamus_version_error: {}", e);
@@ -152,16 +167,31 @@ impl ThalamusClient {
 
     // TODO: Save client state to disk
     pub fn save(&self){
-
+        std::fs::File::create("/opt/thalamusc/clients.json").expect("create failed");
+        let j = serde_json::to_string(&self).unwrap();
+        std::fs::write("/opt/thalamusc/clients.json", j).expect("Unable to write file");
     }
 
     // TODO: Load client state from disk
-    pub fn load() -> Result<ThalamusClient>{
-        Ok(ThalamusClient::new())
+    pub fn load() -> Result<ThalamusClient, Box<dyn Error>>{
+        let save_file = std::fs::read_to_string("/opt/thalamusc/clients.json");
+        match save_file {
+            Ok(save_data) => {
+                let v: ThalamusClient = serde_json::from_str(&save_data)?;
+                return Ok(v);
+            },
+            Err(e) => {
+                log::error!("{}", format!("Unable to read file: {}", e));
+                return Ok(ThalamusClient::new());
+            }
+        }
+        return Ok(ThalamusClient::new());
     }
 
-    pub fn select_optimal_node(&self, node_type: String) -> Result<ThalamusNode> {
-        let nodes = self.nodes.clone();
+    pub fn select_optimal_node(&self, node_type: String) -> Result<ThalamusNode, Box<dyn Error>> {
+        let mut nodex = self.nodes.lock().unwrap();
+        let mut nodes = nodex.clone();
+        std::mem::drop(nodex);
 
         let mut fastest_stt_score = 9999999;
         let mut fastest_vwav_score = 9999999;
@@ -199,7 +229,7 @@ pub struct VersionReply {
     pub version: String,
     pub pid: String,
 }
-pub fn fetch_version(host: &str) -> Result<VersionReply> {
+pub fn fetch_version(host: &str) -> Result<VersionReply, Box<dyn Error>> {
     let client = reqwest::blocking::Client::builder().build()?;
     return Ok(client.get(format!("http://{}/api/thalamus/version", host)).send()?.json()?);
 }
@@ -241,7 +271,7 @@ impl ThalamusNode {
         return node;
     }
 
-    pub fn stt_tiny(&self, tmp_file_path: String) -> Result<STTReply>{
+    pub fn stt_tiny(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "tiny").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -251,7 +281,7 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn stt_basic(&self, tmp_file_path: String) -> Result<STTReply>{
+    pub fn stt_base(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "basic").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -261,7 +291,7 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn stt_medium(&self, tmp_file_path: String) -> Result<STTReply>{
+    pub fn stt_medium(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "medium").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -271,7 +301,7 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn stt_large(&self, tmp_file_path: String) -> Result<STTReply>{
+    pub fn stt_large(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "large").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -281,15 +311,76 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn vwav(&self) -> Result<()>{
-        return Ok(());
+    pub fn vwav_tiny(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+        let form = reqwest::blocking::multipart::Form::new().text("method", "tiny").file("speech", tmp_file_path.as_str())?;
+
+        let client = reqwest::blocking::Client::builder().timeout(None).build()?;
+
+        let bytes = client.post(format!("http://{}/api/services/whisper/vwav", self.ip_address.clone()))
+        .multipart(form)
+        .send()?.bytes()?;
+
+        return Ok(bytes.to_vec());
     }
 
-    pub fn srgan(&self) -> Result<()>{
-        return Ok(());
+    pub fn vwav_base(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+        let form = reqwest::blocking::multipart::Form::new().text("method", "base").file("speech", tmp_file_path.as_str())?;
+
+        let client = reqwest::blocking::Client::builder().timeout(None).build()?;
+
+        let bytes = client.post(format!("http://{}/api/services/whisper/vwav", self.ip_address.clone()))
+        .multipart(form)
+        .send()?.bytes()?;
+
+        return Ok(bytes.to_vec());
     }
 
-    pub fn llama(&self) -> Result<()>{
+    pub fn vwav_medium(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+        let form = reqwest::blocking::multipart::Form::new().text("method", "medium").file("speech", tmp_file_path.as_str())?;
+
+        let client = reqwest::blocking::Client::builder().timeout(None).build()?;
+
+        let bytes = client.post(format!("http://{}/api/services/whisper/vwav", self.ip_address.clone()))
+        .multipart(form)
+        .send()?.bytes()?;
+
+        return Ok(bytes.to_vec());
+    }
+
+    pub fn vwav_large(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+        let form = reqwest::blocking::multipart::Form::new().text("method", "large").file("speech", tmp_file_path.as_str())?;
+
+        let client = reqwest::blocking::Client::builder().timeout(None).build()?;
+
+        let bytes = client.post(format!("http://{}/api/services/whisper/vwav", self.ip_address.clone()))
+        .multipart(form)
+        .send()?.bytes()?;
+
+        return Ok(bytes.to_vec());
+    }
+
+    pub fn srgan(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+
+        let parts: Vec<&str> = tmp_file_path.split('.').collect();
+
+        let extension = parts[parts.len() - 1];
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+
+        let new_file_name = format!("{}.{}", timestamp, extension);
+
+        let form = reqwest::blocking::multipart::Form::new().text("filename", new_file_name).file("input_file", tmp_file_path.as_str())?;
+
+        let client = reqwest::blocking::Client::builder().timeout(None).build()?;
+
+        let bytes = client.post(format!("http://{}/api/services/image/srgan", self.ip_address.clone()))
+        .multipart(form)
+        .send()?.bytes()?;
+
+        return Ok(bytes.to_vec());
+    }
+
+    pub fn llama(&self) -> Result<(), Box<dyn Error>>{
         return Ok(());
     }
 }
@@ -314,7 +405,7 @@ impl ThalamusNodeJob {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThalamusNodeStats {
     pub stt_tiny: i64,
-    pub stt_basic: i64,
+    pub stt_base: i64,
     pub stt_medium: i64,
     pub stt_large: i64,
     pub stt_score: i64,
@@ -324,7 +415,7 @@ pub struct ThalamusNodeStats {
     pub llama_large: i64,
     pub llama_score: i64,
     pub vwav_tiny: i64,
-    pub vwav_basic: i64,
+    pub vwav_base: i64,
     pub vwav_medium: i64,
     pub vwav_large: i64,
     pub vwav_score: i64,
@@ -334,7 +425,7 @@ impl ThalamusNodeStats {
     pub fn new() -> ThalamusNodeStats {
         ThalamusNodeStats { 
             stt_tiny: 0,
-            stt_basic: 0,
+            stt_base: 0,
             stt_medium: 0,
             stt_large: 0,
             stt_score: 0,
@@ -344,7 +435,7 @@ impl ThalamusNodeStats {
             llama_large: 0,
             llama_score: 0,
             vwav_tiny: 0,
-            vwav_basic: 0,
+            vwav_base: 0,
             vwav_medium: 0,
             vwav_large: 0,
             vwav_score: 0, 
@@ -355,32 +446,88 @@ impl ThalamusNodeStats {
     pub fn calculate(node: ThalamusNode) -> ThalamusNodeStats {
 
 
+        log::warn!("Calculating stats for node {}.....", node.pid);
+
+
+        log::warn!("{}: Running STT Tiny test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.stt_tiny("/home/kal/Documents/PixelCoda/sam/packages/test.wav".to_string()).unwrap();
+        let stt = node.stt_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let tiny_stt = end_timestamp - start_timestamp;
+        log::warn!("{}: STT Tiny test complete in {} miliseconds", node.pid, tiny_stt);
         
+        log::warn!("{}: Running STT Base test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.stt_basic("/home/kal/Documents/PixelCoda/sam/packages/test.wav".to_string()).unwrap();
+        let stt = node.stt_base("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let basic_stt = end_timestamp - start_timestamp;
+        log::warn!("{}: STT Base test complete in {} miliseconds", node.pid, basic_stt);
         
+        log::warn!("{}: Running STT Medium test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.stt_medium("/home/kal/Documents/PixelCoda/sam/packages/test.wav".to_string()).unwrap();
+        let stt = node.stt_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let medium_stt = end_timestamp - start_timestamp;
-        
+        log::warn!("{}: STT Medium test complete in {} miliseconds", node.pid, medium_stt);
+
+        log::warn!("{}: Running STT Large test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.stt_large("/home/kal/Documents/PixelCoda/sam/packages/test.wav".to_string()).unwrap();
+        let stt = node.stt_large("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let large_stt = end_timestamp - start_timestamp;
+        log::warn!("{}: STT Large test complete in {} miliseconds", node.pid, large_stt);
         
         let stt_score = (tiny_stt + basic_stt + medium_stt + large_stt) / 4;
+
+
+        log::warn!("{}: Running VWAV Tiny test...", node.pid);
+        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let stt = node.vwav_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let vwav_tiny = end_timestamp - start_timestamp;
+        log::warn!("{}: VWAV Tiny test complete in {} miliseconds", node.pid, vwav_tiny);
+        
+        log::warn!("{}: Running VWAV Base test...", node.pid);
+        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let stt = node.vwav_base("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let vwav_base = end_timestamp - start_timestamp;
+        log::warn!("{}: VWAV Base test complete in {} miliseconds", node.pid, vwav_base);
+        
+        log::warn!("{}: Running VWAV Medium test...", node.pid);
+        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let stt = node.vwav_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let vwav_medium = end_timestamp - start_timestamp;
+        log::warn!("{}: VWAV Medium test complete in {} miliseconds", node.pid, vwav_medium);
+
+        log::warn!("{}: Running VWAV Large test...", node.pid);
+        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let stt = node.vwav_large("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let vwav_large = end_timestamp - start_timestamp;
+        log::warn!("{}: VWAV Large test complete in {} miliseconds", node.pid, vwav_large);
+
+        let vwav_score = (vwav_tiny + vwav_base + vwav_medium + vwav_large) / 4;
+
+        log::warn!("{}: Running SRGAN test...", node.pid);
+        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let stt = node.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
+        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let srgan = end_timestamp - start_timestamp;
+        log::warn!("{}: SRGAN test complete in {} miliseconds", node.pid, srgan);
+
+        // let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+
+        // let mut file = std::fs::File::create(format!("/opt/thalamusc/{}", timestamp))?;
+        // let mut content =  Cursor::new(bytes);
+        // std::io::copy(&mut content, &mut file)?;
+
 
         // TODO: Calculate stats
         return ThalamusNodeStats { 
             stt_tiny: tiny_stt,
-            stt_basic: basic_stt,
+            stt_base: basic_stt,
             stt_medium: medium_stt,
             stt_large: large_stt,
             stt_score: stt_score,
@@ -389,12 +536,12 @@ impl ThalamusNodeStats {
             llama_medium: 0,
             llama_large: 0,
             llama_score: 0,
-            vwav_tiny: 0,
-            vwav_basic: 0,
-            vwav_medium: 0,
-            vwav_large: 0,
-            vwav_score: 0, 
-            srgan: 0,
+            vwav_tiny: vwav_tiny,
+            vwav_base: vwav_base,
+            vwav_medium: vwav_medium,
+            vwav_large: vwav_large,
+            vwav_score: vwav_score, 
+            srgan: srgan,
         };
     }
 }
