@@ -62,7 +62,7 @@ pub async fn start_mdns_responder(){
                 let srv_name = Name::new_unchecked("_thalamus._tcp.local");
             
                 for (name, ip) in network_interfaces.iter() {
-                    if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":"){
+                    if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
                         match *ip {
                             IpAddr::V4(ipv4) => { 
                                 responder.add_resource(ResourceRecord::new(
@@ -75,7 +75,7 @@ pub async fn start_mdns_responder(){
                             IpAddr::V6(ipv6) => { /* handle IPv6 */ }
                         }
 
-                    
+                        
                     }
                 }
             

@@ -104,11 +104,11 @@ pub async fn init_p2p_server() -> Result<(), Box<dyn Error>> {
 
 const NAMESPACE: &str = "rendezvous";
 
-pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
+pub async fn init_p2p_client(server_ip_address: String) -> Result<(), Box<dyn Error>> {
     // env_logger::init();
 
     let key_pair = identity::Keypair::generate_ed25519();
-    let rendezvous_point_address = "/ip4/0.0.0.0/tcp/62649".parse::<Multiaddr>().unwrap();
+    let rendezvous_point_address = format!("/ip4/{}/tcp/62649", server_ip_address).as_str().parse::<Multiaddr>().unwrap();
     // let rendezvous_point = "12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN".parse().unwrap();
 
     let mut swarm = SwarmBuilder::with_tokio_executor(
@@ -130,7 +130,7 @@ pub async fn init_p2p_client() -> Result<(), Box<dyn Error>> {
     )
     .build();
 
-    let external_address = "/ip4/0.0.0.0/tcp/0".parse::<Multiaddr>().unwrap();
+    let external_address = format!("/ip4/{}/tcp/62649", server_ip_address).as_str().parse::<Multiaddr>().unwrap();
     swarm.add_external_address(external_address, libp2p::swarm::AddressScore::Infinite);
 
     log::warn!("Local peer id: {}", swarm.local_peer_id());
