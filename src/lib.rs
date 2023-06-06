@@ -156,7 +156,6 @@ impl ThalamusClient {
         }
     }
 
-  
     // Automatically discover thalamus nodes
     pub fn ipv4_discovery(&mut self){
 
@@ -219,7 +218,9 @@ impl ThalamusClient {
                                 let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
                                 match existing_index {
                                     Some(index) => {
+                                        nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
                                         std::mem::drop(nodes);
+                                        self.save();
                                     },
                                     None => {
                                         nodes.push(ThalamusNode::new(v.pid.to_string(), v.version.to_string(), format!("{}:{}", ipx, port), 8050));
@@ -243,6 +244,32 @@ impl ThalamusClient {
      
         Ok(discovery)
     }
+
+    pub async fn nodex_discovery(&mut self){
+        let mut nodell = self.nodes.lock().unwrap();
+        let nodess = nodell.clone();
+        std::mem::drop(nodell);
+        for node in nodess{
+            let nodexs = node.nodex().unwrap();
+            for nodex in nodexs{
+                let mut nodes = self.nodes.lock().unwrap();
+                let existing_index = nodes.clone().iter().position(|r| r.pid == nodex.pid.to_string());
+                match existing_index {
+                    Some(index) => {
+                        nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+                        std::mem::drop(nodes);
+                        self.save();
+                    },
+                    None => {
+                        nodes.push(ThalamusNode::new(nodex.pid.to_string(), nodex.version.to_string(), nodex.ip_address, 8050));
+                        std::mem::drop(nodes);
+                        self.save();
+                    }
+                }
+            }
+        }
+    }
+
 
     // TODO: Save client state to disk
     pub fn save(&self){
@@ -464,8 +491,25 @@ impl ThalamusNode {
         return Ok(bytes.to_vec());
     }
 
-    pub fn llama(&self) -> Result<(), Box<dyn Error>>{
-        return Ok(());
+    pub fn llama(&self, prompt: String) -> Result<String, Box<dyn Error>>{
+        let params = [("model", "7B"), ("prompt", prompt.as_str())];
+
+        let client = reqwest::blocking::Client::builder().timeout(None).build()?;
+
+        let bytes = client.post(format!("http://{}/api/services/llama", self.ip_address.clone()))
+        .form(&params)
+        .send()?.text()?;
+
+        return Ok(bytes.to_string());
+    }
+
+    pub fn nodex(&self) -> Result<Vec<ThalamusNode>, Box<dyn Error>>{
+
+        let client = reqwest::blocking::Client::builder().timeout(None).build()?;
+
+        return Ok(client.get(format!("http://{}/api/nodex", self.ip_address.clone()))
+        .send()?.json()?);
+
     }
 }
 
@@ -594,6 +638,16 @@ impl ThalamusNodeStats {
 
         let vwav_score = (vwav_tiny + vwav_base + vwav_medium + vwav_large) / 4;
 
+
+        
+        log::warn!("{}: Running LLAMA 7B test...", node.pid);
+        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let llama = node.llama("Tell me about Abraham Lincoln.".to_string()).unwrap();
+        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let llama_tiny = end_timestamp - start_timestamp;
+        log::warn!("{}: LLAMA 7B test complete in {} miliseconds", node.pid, llama_tiny);
+
+
         log::warn!("{}: Running SRGAN test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let stt = node.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
@@ -615,7 +669,7 @@ impl ThalamusNodeStats {
             stt_medium: medium_stt,
             stt_large: large_stt,
             stt_score: stt_score,
-            llama_tiny: 0,
+            llama_tiny: llama_tiny,
             llama_basic: 0,
             llama_medium: 0,
             llama_large: 0,

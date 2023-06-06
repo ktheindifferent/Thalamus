@@ -50,7 +50,7 @@ pub struct VersionHeader {
 
 // TODO - Authenticate connections using a one time key and expiring Sessions
 // WW
-pub fn handle(request: &Request, nodex: Arc<Mutex<Vec<crate::ThalamusNode>>>) -> Result<Response> {
+pub fn handle(request: &Request) -> Result<Response> {
 
     if request.url().contains("/api/thalamus/version"){
         let pid = std::fs::read_to_string("/opt/thalamus/pid").expect("Unable to read file");
@@ -62,7 +62,8 @@ pub fn handle(request: &Request, nodex: Arc<Mutex<Vec<crate::ThalamusNode>>>) ->
     }
 
     if request.url().contains("/api/nodex"){
-        return Ok(Response::json(&nodex.lock().unwrap().clone()));
+        let mut thalamus = crate::ThalamusClient::load().unwrap();
+        return Ok(Response::json(&thalamus.nodes.lock().unwrap().clone()));
     }
 
     if request.url().contains("/api/services/llama"){

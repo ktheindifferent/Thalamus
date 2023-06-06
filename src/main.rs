@@ -15,7 +15,8 @@
 // - whisper vwav generation (DONE)
 // - llamma.cpp support (DONE)
 // - SRGAN (DONE)
-// - internal library
+// - internal library (DONE)
+// - Complete p2p support with nodex exchange (DONE)
 // - publish 0.0.1
 
 // TODO (0.0.2):
@@ -65,7 +66,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Initialize the p2p server
     task::spawn(async {
-        thalamus::p2p::init_p2p_server().await;
+        thalamus::p2p::init_p2p_server().await.unwrap();
     });
 
     // task::spawn(async {
@@ -85,10 +86,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let current_exe_path = format!("{}", exe_path.display());
 
             if current_exe_path.as_str() == "/opt/thalamus/bin/thalamus"{
-                let nodex = Arc::clone(&thalamus.nodes);
                 let server = Server::new("0.0.0.0:8050", move |request| {
-                    let nodey = Arc::clone(&nodex);
-                    match thalamus::thalamus::http::handle(request, nodey){
+                    match thalamus::thalamus::http::handle(request){
                         Ok(request) => {
                             log::info!("{:?}", request);
                             return request;
@@ -119,8 +118,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut i = 0;
     loop{
         discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
-        thalamus = thalamus::ThalamusClient::load().unwrap();
+        thalamus.nodex_discovery();
         std::thread::sleep(std::time::Duration::from_secs(1));
+        thalamus = thalamus::ThalamusClient::load().unwrap();
         i += 1;
         if i > 8 {
             discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();

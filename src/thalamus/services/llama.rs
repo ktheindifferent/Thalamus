@@ -28,8 +28,8 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
     if request.url().contains("/api/services/llama"){
 
         let input = post_input!(request, {
-            prompt: String,
-            model: String,
+            prompt: String, // Hello World!
+            model: String, // 7B
         })?;
 
         match crate::thalamus::tools::llama(input.model.as_str(), input.prompt.as_str()){
