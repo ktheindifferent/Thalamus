@@ -42,22 +42,36 @@
 // - Who.io facial recognition
 // - SPREC speech recognition
 
+
+
 use std::error::Error;
 use tokio::task;
 use std::thread;
 
+
+
+
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
 
+    // Escelate to sudo, setup logging, etc.
     thalamus::preinit();
 
+    // Respond to mDNS queries with thalamus service information
+    thalamus::start_mdns_responder().await;
+
+    // Look for mDNS neighbors
+    thalamus::mdns_discovery().await.unwrap();
+
+    // Initialize the p2p server
     task::spawn(async {
         thalamus::p2p::init_p2p_server().await;
     });
 
-    task::spawn(async {
-        thalamus::p2p::init_p2p_client().await;
-    });
+    // task::spawn(async {
+    //     thalamus::p2p::init_p2p_client().await;
+    // });
 
     thalamus::init();
 

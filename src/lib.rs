@@ -14,6 +14,7 @@ use serde_json::{Value};
 use std::sync::{Arc, Mutex};
 
 extern crate rouille;
+extern crate mdns_responder_rs;
 
 pub mod thalamus;
 pub mod p2p;
@@ -30,7 +31,98 @@ const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 //     }
 // }
 use std::error::Error;
+use std::{net::IpAddr};
+use mdns::{Record, RecordKind};
+use futures_util::{pin_mut, stream::StreamExt};
+use std::time::Duration;
+use tokio::task;
+use tokio::task::yield_now;
 
+const SERVICE_NAME: &'static str = "_thalamus._tcp.local";
+use simple_mdns::async_discovery::SimpleMdnsResponder;
+use simple_dns::{Name, CLASS, ResourceRecord, rdata::{RData, A, SRV}};
+use std::net::Ipv4Addr;
+
+use simple_mdns::async_discovery::ServiceDiscovery;
+use std::net::SocketAddr;
+use std::str::FromStr;
+
+pub async fn start_mdns_responder(){
+    task::spawn(async {
+
+
+
+
+    
+        loop{
+            task::spawn(async {
+                let network_interfaces = list_afinet_netifas().unwrap();
+
+                let mut responder = SimpleMdnsResponder::new(10);
+                let srv_name = Name::new_unchecked("_thalamus._tcp.local");
+            
+                for (name, ip) in network_interfaces.iter() {
+                    if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":"){
+                        match *ip {
+                            IpAddr::V4(ipv4) => { 
+                                responder.add_resource(ResourceRecord::new(
+                                    srv_name.clone(),
+                                    CLASS::IN,
+                                    10,
+                                    RData::A(A { address: ipv4.into() }),
+                                )).await;
+                             },
+                            IpAddr::V6(ipv6) => { /* handle IPv6 */ }
+                        }
+
+                    
+                    }
+                }
+            
+                responder.add_resource(ResourceRecord::new(
+                    srv_name.clone(),
+                    CLASS::IN,
+                    10,
+                    RData::SRV(SRV {
+                        port: 8050,
+                        priority: 0,
+                        weight: 0,
+                        target: srv_name
+                    })
+                )).await;
+
+                yield_now().await;
+                
+            }).await.unwrap();
+            tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+        }
+    });
+
+}
+
+
+
+
+pub async fn mdns_discovery() -> Result<(), mdns::Error> {
+    task::spawn(async {
+        let mut discovery = ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
+        // discovery.add_service_info(SocketAddr::from_str("192.168.86.246:8050").unwrap().into()).await.unwrap();
+        
+        loop{
+            let services = discovery.get_known_services().await;
+            if services.len() > 0 {
+                for xy in services{
+                    log::info!("vhhjv: {:?}", xy);
+                    // TODO: Register 
+                }
+                discovery = ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
+            }
+            std::thread::sleep(std::time::Duration::from_secs(1));
+    
+        }
+    });
+    Ok(())
+}
 
 pub fn preinit(){
     // cls
@@ -49,6 +141,16 @@ pub fn preinit(){
     } else {
         simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
     }
+
+
+    let responder = mdns_responder_rs::Responder::new().unwrap();
+    let _svc = responder.register(
+        "_thalamus._tcp.local".to_owned(),
+        "Thalamus".to_owned(),
+        8050,
+        &["path=/"],
+    );
+
 
     // Print Application Art and Version Information
     println!("████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ ");
@@ -121,7 +223,7 @@ impl ThalamusClient {
     }
 
   
-    // TODO: Automatically discover thalamus nodes
+    // Automatically discover thalamus nodes
     pub fn discover(&mut self){
 
         let network_interfaces = list_afinet_netifas().unwrap();
@@ -134,8 +236,7 @@ impl ThalamusClient {
                 let ips = crate::thalamus::tools::netscan::scan_bulk(format!("{}", ip).as_str(), "8050", "/24").unwrap();
                 log::warn!("Found {} ips", ips.len());
             
-                // TODO: Check matching ips for thalamus version info
-
+                // Check matching ips for thalamus version info
                 for ipx in ips{
                     let version = fetch_version(ipx.as_str());
                     match version {
