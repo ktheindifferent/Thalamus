@@ -116,11 +116,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 
     let mut discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
+    let mut i = 0;
     loop{
         discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
-        // std::thread::sleep(std::time::Duration::from_millis(60000));
-        // thalamus.ipv4_discovery();
-        // thalamus.save();
+        thalamus = thalamus::ThalamusClient::load().unwrap();
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        i += 1;
+        if i > 8 {
+            discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
+            i = 0;
+        }
     }
 
     Ok(())

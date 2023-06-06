@@ -238,7 +238,7 @@ impl ThalamusClient {
             }
         }
 
-        
+        // discovery = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
 
      
         Ok(discovery)
