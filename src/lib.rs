@@ -239,23 +239,31 @@ impl ThalamusClient {
         let nodess = nodell.clone();
         std::mem::drop(nodell);
         for node in nodess{
-            let nodexs = node.nodex().unwrap();
-            for nodex in nodexs{
-                let mut nodes = self.nodes.lock().unwrap();
-                let existing_index = nodes.clone().iter().position(|r| r.pid == nodex.pid.to_string());
-                match existing_index {
-                    Some(index) => {
-                        nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
-                        std::mem::drop(nodes);
-                        self.save();
-                    },
-                    None => {
-                        nodes.push(ThalamusNode::new(nodex.pid.to_string(), nodex.version.to_string(), nodex.ip_address, 8050));
-                        std::mem::drop(nodes);
-                        self.save();
+            let nodexs_wrap = node.nodex();
+            match nodexs_wrap {
+                Ok(nodexs) => {
+                    for nodex in nodexs{
+                        let mut nodes = self.nodes.lock().unwrap();
+                        let existing_index = nodes.clone().iter().position(|r| r.pid == nodex.pid.to_string());
+                        match existing_index {
+                            Some(index) => {
+                                nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+                                std::mem::drop(nodes);
+                                self.save();
+                            },
+                            None => {
+                                nodes.push(nodex);
+                                std::mem::drop(nodes);
+                                self.save();
+                            }
+                        }
                     }
+                },
+                Err(e) => {
+                    log::error!("nodex_discovery_error: {}", e);
                 }
             }
+
         }
     }
 
@@ -493,12 +501,15 @@ impl ThalamusNode {
     }
 
     pub fn nodex(&self) -> Result<Vec<ThalamusNode>, Box<dyn Error>>{
-
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        return Ok(client.get(format!("http://{}/api/nodex", self.ip_address.clone()))
-        .send()?.json()?);
+        let mut url = format!("http://{}/api/nodex", self.ip_address.clone());
+        if !url.contains(":") {
+            url = format!("{}:{}", url, self.port.clone());
+        }
 
+        return Ok(client.get(url)
+        .send()?.json()?);
     }
 }
 

@@ -118,7 +118,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut i = 0;
     loop{
         discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
-        thalamus.nodex_discovery();
+        thalamus.nodex_discovery().await;
         std::thread::sleep(std::time::Duration::from_secs(1));
         thalamus = thalamus::ThalamusClient::load().unwrap();
         i += 1;
