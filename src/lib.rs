@@ -49,55 +49,44 @@ use std::str::FromStr;
 
 pub async fn start_mdns_responder(){
     task::spawn(async {
+        let network_interfaces = list_afinet_netifas().unwrap();
 
-
-
-
+        let mut responder = SimpleMdnsResponder::new(10);
+        let srv_name = Name::new_unchecked("_thalamus._tcp.local");
     
-        loop{
-            task::spawn(async {
-                let network_interfaces = list_afinet_netifas().unwrap();
-
-                let mut responder = SimpleMdnsResponder::new(10);
-                let srv_name = Name::new_unchecked("_thalamus._tcp.local");
-            
-                for (name, ip) in network_interfaces.iter() {
-                    if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
-                        match *ip {
-                            IpAddr::V4(ipv4) => { 
-                                responder.add_resource(ResourceRecord::new(
-                                    srv_name.clone(),
-                                    CLASS::IN,
-                                    10,
-                                    RData::A(A { address: ipv4.into() }),
-                                )).await;
-                             },
-                            IpAddr::V6(ipv6) => { /* handle IPv6 */ }
-                        }
-
-                        
-                    }
+        for (name, ip) in network_interfaces.iter() {
+            if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
+                match *ip {
+                    IpAddr::V4(ipv4) => { 
+                        responder.add_resource(ResourceRecord::new(
+                            srv_name.clone(),
+                            CLASS::IN,
+                            10,
+                            RData::A(A { address: ipv4.into() }),
+                        )).await;
+                     },
+                    IpAddr::V6(ipv6) => { /* handle IPv6 */ }
                 }
-            
-                responder.add_resource(ResourceRecord::new(
-                    srv_name.clone(),
-                    CLASS::IN,
-                    10,
-                    RData::SRV(SRV {
-                        port: 8050,
-                        priority: 0,
-                        weight: 0,
-                        target: srv_name
-                    })
-                )).await;
 
-                yield_now().await;
                 
-            }).await.unwrap();
-            tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+            }
         }
-    });
+    
+        responder.add_resource(ResourceRecord::new(
+            srv_name.clone(),
+            CLASS::IN,
+            10,
+            RData::SRV(SRV {
+                port: 8050,
+                priority: 0,
+                weight: 0,
+                target: srv_name
+            })
+        )).await;
 
+        yield_now().await;
+        
+    });
 }
 
 
