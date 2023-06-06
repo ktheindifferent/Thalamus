@@ -101,29 +101,6 @@ pub async fn start_mdns_responder(){
 }
 
 
-
-
-pub async fn mdns_discovery() -> Result<(), mdns::Error> {
-    task::spawn(async {
-        let mut discovery = ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
-        // discovery.add_service_info(SocketAddr::from_str("192.168.86.246:8050").unwrap().into()).await.unwrap();
-        
-        loop{
-            let services = discovery.get_known_services().await;
-            if services.len() > 0 {
-                for xy in services{
-                    log::info!("vhhjv: {:?}", xy);
-                    // TODO: Register 
-                }
-                discovery = ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
-            }
-            std::thread::sleep(std::time::Duration::from_secs(1));
-    
-        }
-    });
-    Ok(())
-}
-
 pub fn preinit(){
     // cls
     clearscreen::clear().unwrap();
@@ -165,49 +142,6 @@ pub fn preinit(){
     };
 }
 
-pub fn init(){
-
-
-
-    
-
-    match crate::thalamus::setup::install_client(){
-        Ok(_) => log::warn!("Installed thalamus client"),
-        Err(e) => log::error!("Error installing thalamus client: {}", e),
-    };
-
-    match std::env::current_exe() {
-        Ok(exe_path) => {
-            let current_exe_path = format!("{}", exe_path.display());
-
-            if current_exe_path.as_str() == "/opt/thalamus/bin/thalamus"{
-                let server = Server::new("0.0.0.0:8050", |request| {
-                    match crate::thalamus::http::handle(request){
-                        Ok(request) => {
-                            log::info!("{:?}", request);
-                            return request;
-                        },
-                        Err(err) => {
-                            log::error!("HTTP_ERROR: {}", err);
-                            return Response::empty_404();
-                        }
-                    }
-                }).unwrap().pool_size(6);
-            
-                loop {
-                    server.poll();
-                }
-            } else {
-                match crate::thalamus::setup::install(){
-                    Ok(_) => log::warn!("Installed thalamus"),
-                    Err(e) => log::error!("Error installing thalamus: {}", e),
-                };
-            }
-        },
-        Err(e) => log::error!("failed to get current exe path: {e}"),
-    };
-
-}
 
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -224,7 +158,7 @@ impl ThalamusClient {
 
   
     // Automatically discover thalamus nodes
-    pub fn discover(&mut self){
+    pub fn ipv4_discovery(&mut self){
 
         let network_interfaces = list_afinet_netifas().unwrap();
 
@@ -264,6 +198,56 @@ impl ThalamusClient {
 
 
         
+    }
+
+    pub async fn mdns_discovery(&mut self) -> Result<(), mdns::Error> {
+        let nodex = Arc::clone(&self.nodes);
+        let mut discoverx = ServiceDiscovery::new("a", "_thalamus._tcp.local", 10);
+    
+        match discoverx{
+            Ok(mut discovery) => {
+                let services = discovery.get_known_services().await;
+                if services.len() > 0 {
+                    for xy in services{
+                        log::info!("vhhjv: {:?}", xy);
+                        // TODO: Register 
+                        for ipfx in xy.ip_addresses{
+                            let ipx = ipfx.to_string();
+                            let port = xy.ports[0];
+                            if !ipx.to_string().contains(".0.1"){
+                                let version = async_fetch_version(format!("{}:{}", ipx, port).as_str()).await;
+                                match version {
+                                    Ok(v) => {
+                                        let mut nodes = nodex.lock().unwrap();
+                                        let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
+                                        match existing_index {
+                                            Some(index) => {
+                                                std::mem::drop(nodes);
+                                            },
+                                            None => {
+                                                nodes.push(ThalamusNode::new(v.pid.to_string(), v.version.to_string(), format!("{}:{}", ipx, port), 8050));
+                                                std::mem::drop(nodes);
+                                                self.save();
+                                            }
+                                        }
+                                        
+                                    },
+                                    Err(e) => {
+                                        log::error!("fetch_thalamus_version_error: {}", e);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            Err(e) => {
+                log::error!("mdns_discovery_error: {}", e);
+            }
+        }
+
+     
+        Ok(())
     }
 
     // TODO: Save client state to disk
@@ -333,6 +317,11 @@ pub struct VersionReply {
 pub fn fetch_version(host: &str) -> Result<VersionReply, Box<dyn Error>> {
     let client = reqwest::blocking::Client::builder().build()?;
     return Ok(client.get(format!("http://{}/api/thalamus/version", host)).send()?.json()?);
+}
+
+pub async fn async_fetch_version(host: &str) -> Result<VersionReply, Box<dyn Error>> {
+    let client = reqwest::Client::builder().build()?;
+    return Ok(client.get(format!("http://{}/api/thalamus/version", host)).send().await?.json().await?);
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

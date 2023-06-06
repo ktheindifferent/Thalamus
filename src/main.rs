@@ -48,9 +48,9 @@ use std::error::Error;
 use tokio::task;
 use std::thread;
 
-
-
-
+use std::sync::Arc;
+use rouille::Server;
+use rouille::Response;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -61,8 +61,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Respond to mDNS queries with thalamus service information
     thalamus::start_mdns_responder().await;
 
-    // Look for mDNS neighbors
-    thalamus::mdns_discovery().await.unwrap();
+
 
     // Initialize the p2p server
     task::spawn(async {
@@ -73,16 +72,56 @@ async fn main() -> Result<(), Box<dyn Error>> {
     //     thalamus::p2p::init_p2p_client().await;
     // });
 
-    thalamus::init();
+    let mut thalamus = thalamus::ThalamusClient::load().unwrap();
+    
 
-    thread::spawn(|| {
-        let mut thalamus = thalamus::ThalamusClient::load().unwrap();
-        thalamus.discover();
-        thalamus.save();
-        log::warn!("thalamus: {:?}", thalamus);
-    });
+    match thalamus::thalamus::setup::install_client(){
+        Ok(_) => log::warn!("Installed thalamus client"),
+        Err(e) => log::error!("Error installing thalamus client: {}", e),
+    };
 
-    loop{}
+    match std::env::current_exe() {
+        Ok(exe_path) => {
+            let current_exe_path = format!("{}", exe_path.display());
+
+            if current_exe_path.as_str() == "/opt/thalamus/bin/thalamus"{
+                let nodex = Arc::clone(&thalamus.nodes);
+                let server = Server::new("0.0.0.0:8050", move |request| {
+                    let nodey = Arc::clone(&nodex);
+                    match thalamus::thalamus::http::handle(request, nodey){
+                        Ok(request) => {
+                            log::info!("{:?}", request);
+                            return request;
+                        },
+                        Err(err) => {
+                            log::error!("HTTP_ERROR: {}", err);
+                            return Response::empty_404();
+                        }
+                    }
+                }).unwrap().pool_size(6);
+            
+                loop {
+                    server.poll();
+                }
+            } else {
+                match thalamus::thalamus::setup::install(){
+                    Ok(_) => log::warn!("Installed thalamus"),
+                    Err(e) => log::error!("Error installing thalamus: {}", e),
+                };
+            }
+        },
+        Err(e) => log::error!("failed to get current exe path: {e}"),
+    };
+
+
+
+
+    loop{
+        thalamus.mdns_discovery().await.unwrap();
+        tokio::time::sleep(tokio::time::Duration::from_millis(60000)).await;
+        // thalamus.ipv4_discovery();
+        // thalamus.save();
+    }
 
     Ok(())
 }

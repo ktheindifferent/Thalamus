@@ -13,7 +13,7 @@
 use rouille::Request;
 use rouille::Response;
 use serde::{Serialize, Deserialize};
-
+use std::sync::{Arc, Mutex};
 
 // store application version as a const
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
@@ -50,7 +50,7 @@ pub struct VersionHeader {
 
 // TODO - Authenticate connections using a one time key and expiring Sessions
 // WW
-pub fn handle(request: &Request) -> Result<Response> {
+pub fn handle(request: &Request, nodex: Arc<Mutex<Vec<crate::ThalamusNode>>>) -> Result<Response> {
 
     if request.url().contains("/api/thalamus/version"){
         let pid = std::fs::read_to_string("/opt/thalamus/pid").expect("Unable to read file");
@@ -59,6 +59,10 @@ pub fn handle(request: &Request) -> Result<Response> {
 
     if request.url().contains("/api/services/image"){
         return Ok(crate::thalamus::services::image::handle(request)?);
+    }
+
+    if request.url().contains("/api/nodex"){
+        return Ok(Response::json(&nodex.lock().unwrap().clone()));
     }
 
     if request.url().contains("/api/services/llama"){
