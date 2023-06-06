@@ -238,17 +238,6 @@ pub fn install_client() -> Result<()> {
 pub fn install_service() -> Result<()> {
 
 
-    match std::env::current_exe() {
-        Ok(exe_path) => {
-            let current_exe_path = format!("{}", exe_path.display());
-            match crate::thalamus::tools::cp(current_exe_path.as_str(), "/opt/thalamus/bin"){
-                Ok(_) => {},
-                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to copy thalamus binary").into()),
-            }
-        },
-        Err(e) => log::error!("failed to get current exe path: {e}"),
-    };
-
 
 
     // Mac OS
@@ -258,6 +247,20 @@ pub fn install_service() -> Result<()> {
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to launch thalamus as a service").into()),
         }
+
+        // Copy Files
+        match std::env::current_exe() {
+            Ok(exe_path) => {
+                let current_exe_path = format!("{}", exe_path.display());
+                match crate::thalamus::tools::cp(current_exe_path.as_str(), "/opt/thalamus/bin"){
+                    Ok(_) => {},
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to copy thalamus binary").into()),
+                }
+            },
+            Err(e) => log::error!("failed to get current exe path: {e}"),
+        };
+
+
         match crate::thalamus::tools::launchd_bootstrap("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist"){
             Ok(_) => {},
                         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to bootstrap thalamus as a service").into()),
@@ -288,6 +291,17 @@ pub fn install_service() -> Result<()> {
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to stop thalamus as a service").into()),
         }
+        // Copy Files
+        match std::env::current_exe() {
+            Ok(exe_path) => {
+                let current_exe_path = format!("{}", exe_path.display());
+                match crate::thalamus::tools::cp(current_exe_path.as_str(), "/opt/thalamus/bin"){
+                    Ok(_) => {},
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to copy thalamus binary").into()),
+                }
+            },
+            Err(e) => log::error!("failed to get current exe path: {e}"),
+        };
         match crate::thalamus::tools::systemctl_start("thalamus.service"){
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to start thalamus as a service").into()),
