@@ -200,54 +200,48 @@ impl ThalamusClient {
         
     }
 
-    pub async fn mdns_discovery(&mut self) -> Result<(), mdns::Error> {
+    pub async fn mdns_discovery(&mut self, mut discovery: simple_mdns::async_discovery::ServiceDiscovery) -> Result<simple_mdns::async_discovery::ServiceDiscovery, mdns::Error> {
         let nodex = Arc::clone(&self.nodes);
-        let mut discoverx = ServiceDiscovery::new("a", "_thalamus._tcp.local", 10);
-    
-        match discoverx{
-            Ok(mut discovery) => {
-                let services = discovery.get_known_services().await;
-                if services.len() > 0 {
-                    for xy in services{
-                        log::info!("vhhjv: {:?}", xy);
-                        // TODO: Register 
-                        for ipfx in xy.ip_addresses{
-                            let ipx = ipfx.to_string();
-                            let port = xy.ports[0];
-                            if !ipx.to_string().contains(".0.1"){
-                                let version = async_fetch_version(format!("{}:{}", ipx, port).as_str()).await;
-                                match version {
-                                    Ok(v) => {
-                                        let mut nodes = nodex.lock().unwrap();
-                                        let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
-                                        match existing_index {
-                                            Some(index) => {
-                                                std::mem::drop(nodes);
-                                            },
-                                            None => {
-                                                nodes.push(ThalamusNode::new(v.pid.to_string(), v.version.to_string(), format!("{}:{}", ipx, port), 8050));
-                                                std::mem::drop(nodes);
-                                                self.save();
-                                            }
-                                        }
-                                        
+
+        let services = discovery.get_known_services().await;
+        if services.len() > 0 {
+            for xy in services{
+                log::info!("vhhjv: {:?}", xy);
+                // TODO: Register 
+                for ipfx in xy.ip_addresses{
+                    let ipx = ipfx.to_string();
+                    let port = xy.ports[0];
+                    if !ipx.to_string().contains(".0.1"){
+                        let version = async_fetch_version(format!("{}:{}", ipx, port).as_str()).await;
+                        match version {
+                            Ok(v) => {
+                                let mut nodes = nodex.lock().unwrap();
+                                let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
+                                match existing_index {
+                                    Some(index) => {
+                                        std::mem::drop(nodes);
                                     },
-                                    Err(e) => {
-                                        log::error!("fetch_thalamus_version_error: {}", e);
+                                    None => {
+                                        nodes.push(ThalamusNode::new(v.pid.to_string(), v.version.to_string(), format!("{}:{}", ipx, port), 8050));
+                                        std::mem::drop(nodes);
+                                        self.save();
                                     }
                                 }
+                                
+                            },
+                            Err(e) => {
+                                log::error!("fetch_thalamus_version_error: {}", e);
                             }
                         }
                     }
                 }
-            },
-            Err(e) => {
-                log::error!("mdns_discovery_error: {}", e);
             }
         }
 
+        
+
      
-        Ok(())
+        Ok(discovery)
     }
 
     // TODO: Save client state to disk

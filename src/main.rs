@@ -115,10 +115,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 
 
-
+    let mut discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
     loop{
-        thalamus.mdns_discovery().await.unwrap();
-        tokio::time::sleep(tokio::time::Duration::from_millis(60000)).await;
+        discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
+        // std::thread::sleep(std::time::Duration::from_millis(60000));
         // thalamus.ipv4_discovery();
         // thalamus.save();
     }
