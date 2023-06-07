@@ -10,7 +10,7 @@
 // Super Resoulution using a Generative Adversarial Network
 // Makes pngs and jpegs look nice.....computer enhance image!
 
-
+use std::path::Path;
 use rouille::Request;
 use rouille::Response;
 use std::fs::File;
@@ -55,19 +55,21 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
 }
 
 pub fn install() -> Result<(), crate::thalamus::setup::Error> {
-    #[cfg(all(target_arch = "x86_64", target_os = "linux"))] {
-        log::info!("Unpacking SRGAN");
-        crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/l4smcanvwjf3huy/srgan")?;
-    }
+    if !Path::new("/opt/thalamus/bin/srgan").exists(){
+        #[cfg(all(target_arch = "x86_64", target_os = "linux"))] {
+            log::info!("Unpacking SRGAN");
+            crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/l4smcanvwjf3huy/srgan")?;
+        }
 
-    #[cfg(all(target_arch = "aarch64", target_os = "linux"))] {
-        log::info!("Unpacking SRGAN");
-        crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/sgf76zwss8m4xu3/srgan")?;
-    }
+        #[cfg(all(target_arch = "aarch64", target_os = "linux"))] {
+            log::info!("Unpacking SRGAN");
+            crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/sgf76zwss8m4xu3/srgan")?;
+        }
 
-    #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
-        log::info!("Unpacking SRGAN");
-        crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/52imqf6clftie47/srgan")?;
+        #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
+            log::info!("Unpacking SRGAN");
+            crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/52imqf6clftie47/srgan")?;
+        }
     }
 
     Ok(())

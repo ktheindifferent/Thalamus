@@ -86,6 +86,10 @@ async fn main() {
                     Ok(_) => log::warn!("Installed thalamus"),
                     Err(e) => log::error!("Error installing thalamus: {}", e),
                 };
+                match thalamus::thalamus::setup::install_client(){
+                    Ok(_) => log::warn!("Installed thalamus client"),
+                    Err(e) => log::error!("Error installing thalamus client: {}", e),
+                };
             }
         },
         Err(e) => log::error!("Error getting current executable path: {}", e),
@@ -103,10 +107,7 @@ async fn main() {
         thalamus::p2p::init_p2p_server().await.unwrap();
     });
 
-    match thalamus::thalamus::setup::install_client(){
-        Ok(_) => log::warn!("Installed thalamus client"),
-        Err(e) => log::error!("Error installing thalamus client: {}", e),
-    };
+
 
     let discovery_server = task::spawn(async {
         let mut thalamus = thalamus::ThalamusClient::load().unwrap();
@@ -142,7 +143,7 @@ async fn main() {
                                 return Response::empty_404();
                             }
                         }
-                    }).unwrap().pool_size(6);
+                    }).unwrap().pool_size(3);
                 
                     loop {
                         server.poll();
@@ -153,7 +154,7 @@ async fn main() {
         }
     });
 
-    tokio::join!(
+    let _idk = tokio::join!(
         p2p_server,
         discovery_server,
         main_server,

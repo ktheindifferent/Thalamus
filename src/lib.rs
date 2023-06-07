@@ -102,17 +102,22 @@ impl ThalamusClient {
                         let version = async_fetch_version(format!("{}:{}", ipx, port).as_str()).await;
                         match version {
                             Ok(v) => {
-                                let mut nodes = nodex.lock().unwrap();
+                                let mut nodess = nodex.lock().unwrap();
+                                let nodes = nodess.clone();
+                                std::mem::drop(nodess);
                                 let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
                                 match existing_index {
                                     Some(index) => {
+                                        let mut nodes = nodex.lock().unwrap();
                                         nodes[index].is_online = true;
                                         nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
                                         std::mem::drop(nodes);
                                         self.save();
                                     },
                                     None => {
-                                        nodes.push(ThalamusNode::new(v.pid.to_string(), v.version.to_string(), format!("{}:{}", ipx, port), 8050));
+                                        let thalamus_node = ThalamusNode::new(v.pid.to_string(), v.version.to_string(), format!("{}:{}", ipx, port), 8050);
+                                        let mut nodes = nodex.lock().unwrap();
+                                        nodes.push(thalamus_node);
                                         std::mem::drop(nodes);
                                         self.save();
                                     }
@@ -121,16 +126,19 @@ impl ThalamusClient {
                             },
                             Err(e) => {
                                 log::error!("fetch_thalamus_version_error: {}", e);
-                                let mut nodes = nodex.lock().unwrap();
+                                let mut nodess = nodex.lock().unwrap();
+                                let nodes = nodess.clone();
+                                std::mem::drop(nodess);
                                 let existing_index = nodes.clone().iter().position(|r| r.ip_address == format!("{}:{}", ipx, port).as_str());
                                 match existing_index {
                                     Some(index) => {
+                                        let mut nodes = nodex.lock().unwrap();
                                         nodes[index].is_online = false;
                                         std::mem::drop(nodes);
                                         self.save();
                                     },
                                     None => {
-                                        std::mem::drop(nodes);
+                                        // std::mem::drop(nodes);
                                     }
                                 }
                             }
@@ -481,9 +489,9 @@ impl ThalamusNode {
         log::info!("{}: Running SRGAN test...", self.pid);
         let (sender, receiver) = mpsc::channel();
         let node_c = self.clone();
-        let t = thread::spawn(move || {
+        let _t = thread::spawn(move || {
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-            let _stt = node_c.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
+            let srgan = node_c.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
             let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             let time_elapsed = Some(end_timestamp - start_timestamp);
 
@@ -499,7 +507,7 @@ impl ThalamusNode {
         log::info!("{}: Running LLAMA {} test...", self.pid, model);
         let (sender, receiver) = mpsc::channel();
         let node_c = self.clone();
-        let t = thread::spawn(move || {
+        let _t = thread::spawn(move || {
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             let _llama = node_c.llama("Tell me about Abraham Lincoln.".to_string(), model.to_string()).unwrap();
             let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
@@ -510,14 +518,14 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_millis(60000));
+        return receiver.recv_timeout(std::time::Duration::from_millis(120000));
     }
 
     pub fn test_whisper_stt(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
-        log::info!("{}: Running LLAMA {} test...", self.pid, model);
+        log::info!("{}: Running Whisper STT {} test...", self.pid, model);
         let (sender, receiver) = mpsc::channel();
         let node_c = self.clone();
-        let t = thread::spawn(move || {
+        let _t = thread::spawn(move || {
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             if model == "tiny".to_string() {
                 let _stt = node_c.whisper_stt_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
@@ -540,14 +548,14 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_millis(60000));
+        return receiver.recv_timeout(std::time::Duration::from_millis(120000));
     }
 
     pub fn test_whisper_vwav(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
-        log::info!("{}: Running LLAMA {} test...", self.pid, model);
+        log::info!("{}: Running Whisper STT {} test...", self.pid, model);
         let (sender, receiver) = mpsc::channel();
         let node_c = self.clone();
-        let t = thread::spawn(move || {
+        let _t = thread::spawn(move || {
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             if model == "tiny".to_string() {
                 let _stt = node_c.whisper_vwav_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
@@ -570,7 +578,7 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_millis(60000));
+        return receiver.recv_timeout(std::time::Duration::from_millis(120000));
     }
 }
 
@@ -667,43 +675,48 @@ impl ThalamusNodeStats {
 
         // Test STT Base
         let mut whisper_stt_base: Option<i64> = None;
-        let whisper_stt_base_test = node.test_whisper_stt("base".to_string());
-        match whisper_stt_base_test {
-            Ok(time_elapsed) => {
-                whisper_stt_base = time_elapsed;
-            },
-            Err(e) => {
-                log::error!("{}: Error running STT Base test: {:?}", node.pid, e);
+        if whisper_stt_tiny.is_some(){
+            let whisper_stt_base_test = node.test_whisper_stt("base".to_string());
+            match whisper_stt_base_test {
+                Ok(time_elapsed) => {
+                    whisper_stt_base = time_elapsed;
+                },
+                Err(e) => {
+                    log::error!("{}: Error running STT Base test: {:?}", node.pid, e);
+                }
             }
+            log::info!("{}: STT Base test complete in {:?} miliseconds", node.pid, whisper_stt_base);    
         }
-        log::info!("{}: STT Base test complete in {:?} miliseconds", node.pid, whisper_stt_base);
 
         // Test STT Medium
         let mut whisper_stt_medium: Option<i64> = None;
-        let whisper_stt_medium_test = node.test_whisper_stt("medium".to_string());
-        match whisper_stt_medium_test {
-            Ok(time_elapsed) => {
-                whisper_stt_medium = time_elapsed;
-            },
-            Err(e) => {
-                log::error!("{}: Error running STT Medium test: {:?}", node.pid, e);
+        if whisper_stt_base.is_some() {
+            let whisper_stt_medium_test = node.test_whisper_stt("medium".to_string());
+            match whisper_stt_medium_test {
+                Ok(time_elapsed) => {
+                    whisper_stt_medium = time_elapsed;
+                },
+                Err(e) => {
+                    log::error!("{}: Error running STT Medium test: {:?}", node.pid, e);
+                }
             }
+            log::info!("{}: STT Medium test complete in {:?} miliseconds", node.pid, whisper_stt_medium);    
         }
-        log::info!("{}: STT Medium test complete in {:?} miliseconds", node.pid, whisper_stt_medium);
 
         // Test STT Large
         let mut whisper_stt_large: Option<i64> = None;
-        let whisper_stt_large_test = node.test_whisper_stt("large".to_string());
-        match whisper_stt_large_test {
-            Ok(time_elapsed) => {
-                whisper_stt_large = time_elapsed;
-            },
-            Err(e) => {
-                log::error!("{}: Error running STT Large test: {:?}", node.pid, e);
+        if whisper_stt_medium.is_some() {
+            let whisper_stt_large_test = node.test_whisper_stt("large".to_string());
+            match whisper_stt_large_test {
+                Ok(time_elapsed) => {
+                    whisper_stt_large = time_elapsed;
+                },
+                Err(e) => {
+                    log::error!("{}: Error running STT Large test: {:?}", node.pid, e);
+                }
             }
+            log::info!("{}: STT Large test complete in {:?} miliseconds", node.pid, whisper_stt_large);
         }
-        log::info!("{}: STT Large test complete in {:?} miliseconds", node.pid, whisper_stt_large);
-        
         // Calculate average STT score
         // let whisper_stt_score = (whisper_stt_tiny + basic_stt + whisper_stt_medium + whisper_stt_large) / 4;
 
@@ -722,42 +735,48 @@ impl ThalamusNodeStats {
 
         // Test VWAV Base
         let mut whisper_vwav_base: Option<i64> = None;
-        let whisper_vwav_base_test = node.test_whisper_vwav("base".to_string());
-        match whisper_vwav_base_test {
-            Ok(time_elapsed) => {
-                whisper_vwav_base = time_elapsed;
-            },
-            Err(e) => {
-                log::error!("{}: Error running VWAV Base test: {:?}", node.pid, e);
+        if whisper_vwav_tiny.is_some() {
+            let whisper_vwav_base_test = node.test_whisper_vwav("base".to_string());
+            match whisper_vwav_base_test {
+                Ok(time_elapsed) => {
+                    whisper_vwav_base = time_elapsed;
+                },
+                Err(e) => {
+                    log::error!("{}: Error running VWAV Base test: {:?}", node.pid, e);
+                }
             }
+            log::info!("{}: VWAV Base test complete in {:?} miliseconds", node.pid, whisper_vwav_base);
         }
-        log::info!("{}: VWAV Base test complete in {:?} miliseconds", node.pid, whisper_vwav_base);
 
         // Test VWAV Medium
         let mut whisper_vwav_medium: Option<i64> = None;
-        let whisper_vwav_medium_test = node.test_whisper_vwav("medium".to_string());
-        match whisper_vwav_medium_test {
-            Ok(time_elapsed) => {
-                whisper_vwav_medium = time_elapsed;
-            },
-            Err(e) => {
-                log::error!("{}: Error running VWAV Medium test: {:?}", node.pid, e);
+        if whisper_vwav_base.is_some() {
+            let whisper_vwav_medium_test = node.test_whisper_vwav("medium".to_string());
+            match whisper_vwav_medium_test {
+                Ok(time_elapsed) => {
+                    whisper_vwav_medium = time_elapsed;
+                },
+                Err(e) => {
+                    log::error!("{}: Error running VWAV Medium test: {:?}", node.pid, e);
+                }
             }
+            log::info!("{}: VWAV Medium test complete in {:?} miliseconds", node.pid, whisper_vwav_medium);
         }
-        log::info!("{}: VWAV Medium test complete in {:?} miliseconds", node.pid, whisper_vwav_medium);
 
         // Test VWAV Large
         let mut whisper_vwav_large: Option<i64> = None;
-        let whisper_vwav_large_test = node.test_whisper_vwav("large".to_string());
-        match whisper_vwav_large_test {
-            Ok(time_elapsed) => {
-                whisper_vwav_large = time_elapsed;
-            },
-            Err(e) => {
-                log::error!("{}: Error running VWAV Large test: {:?}", node.pid, e);
+        if whisper_vwav_medium.is_some() {
+            let whisper_vwav_large_test = node.test_whisper_vwav("large".to_string());
+            match whisper_vwav_large_test {
+                Ok(time_elapsed) => {
+                    whisper_vwav_large = time_elapsed;
+                },
+                Err(e) => {
+                    log::error!("{}: Error running VWAV Large test: {:?}", node.pid, e);
+                }
             }
+            log::info!("{}: VWAV Large test complete in {:?} miliseconds", node.pid, whisper_vwav_large);
         }
-        log::info!("{}: VWAV Large test complete in {:?} miliseconds", node.pid, whisper_vwav_large);
 
         // Calculate average VWAV score
         // let whisper_vwav_score = (whisper_vwav_tiny + whisper_vwav_base + whisper_vwav_medium + whisper_vwav_large) / 4;
@@ -777,42 +796,48 @@ impl ThalamusNodeStats {
 
         // Test LLAMA 13B
         let mut llama_13b: Option<i64> = None;
-        let llama_13b_test = node.test_llama("13B".to_string());
-        match llama_13b_test {
-            Ok(time_elapsed) => {
-                llama_13b = time_elapsed;
-            },
-            Err(e) => {
-                log::error!("{}: Error running Llama 13B test: {:?}", node.pid, e);
+        if llama_7b.is_some(){
+            let llama_13b_test = node.test_llama("13B".to_string());
+            match llama_13b_test {
+                Ok(time_elapsed) => {
+                    llama_13b = time_elapsed;
+                },
+                Err(e) => {
+                    log::error!("{}: Error running Llama 13B test: {:?}", node.pid, e);
+                }
             }
+            log::info!("{}: LLAMA 13B test complete in {:?} miliseconds", node.pid, llama_13b);    
         }
-        log::info!("{}: LLAMA 13B test complete in {:?} miliseconds", node.pid, llama_13b);
 
         // Test LLAMA 30B
         let mut llama_30b: Option<i64> = None;
-        let llama_30b_test = node.test_llama("30B".to_string());
-        match llama_30b_test {
-            Ok(time_elapsed) => {
-                llama_30b = time_elapsed;
-            },
-            Err(e) => {
-                log::error!("{}: Error running Llama 30B test: {:?}", node.pid, e);
+        if llama_13b.is_some(){
+            let llama_30b_test = node.test_llama("30B".to_string());
+            match llama_30b_test {
+                Ok(time_elapsed) => {
+                    llama_30b = time_elapsed;
+                },
+                Err(e) => {
+                    log::error!("{}: Error running Llama 30B test: {:?}", node.pid, e);
+                }
             }
+            log::info!("{}: LLAMA 30B test complete in {:?} miliseconds", node.pid, llama_30b);
         }
-        log::info!("{}: LLAMA 30B test complete in {:?} miliseconds", node.pid, llama_30b);
 
         // Test LLAMA 65B
         let mut llama_65b: Option<i64> = None;
-        let llama_65b_test = node.test_llama("65B".to_string());
-        match llama_65b_test {
-            Ok(time_elapsed) => {
-                llama_65b = time_elapsed;
-            },
-            Err(e) => {
-                log::error!("{}: Error running Llama 65B test: {:?}", node.pid, e);
+        if llama_30b.is_some(){
+            let llama_65b_test = node.test_llama("65B".to_string());
+            match llama_65b_test {
+                Ok(time_elapsed) => {
+                    llama_65b = time_elapsed;
+                },
+                Err(e) => {
+                    log::error!("{}: Error running Llama 65B test: {:?}", node.pid, e);
+                }
             }
+            log::info!("{}: LLAMA 65B test complete in {:?} miliseconds", node.pid, llama_65b);
         }
-        log::info!("{}: LLAMA 65B test complete in {:?} miliseconds", node.pid, llama_65b);
 
         // Calculate average llama score
         let mut llama_score = 0;
@@ -857,7 +882,7 @@ impl ThalamusNodeStats {
                 log::error!("{}: Error running SRGAN test: {:?}", node.pid, e);
             }
         }
-        log::info!("{}: SRGAN test complete in {:?} miliseconds", node.pid, whisper_vwav_tiny);
+        log::info!("{}: SRGAN test complete in {:?} miliseconds", node.pid, srgan);
 
         // Return stats
         return ThalamusNodeStats { 

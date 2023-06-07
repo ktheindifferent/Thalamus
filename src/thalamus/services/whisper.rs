@@ -17,9 +17,7 @@ use std::path::Path;
 use std::fs::File;
 
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::thread;
 
-use std::time::Duration;
 use std::io::Write;
 
 
@@ -226,11 +224,15 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     // }
 
     #[cfg(target_arch = "x86_64")]{
-        log::info!("Installing whisper (x86_64) /opt/thalamus/bin/whisper");
-        crate::thalamus::tools::download("/opt/thalamus/bin/whisper", "https://www.dropbox.com/s/ovcjbhmdysnlyyn/main")?;
-    
-        crate::thalamus::tools::download("/opt/thalamus/bin/ffmpeg", "https://www.dropbox.com/s/j91btel44c37g98/ffmpeg")?;
-    
+        if !Path::new("/opt/thalamus/bin/whisper").exists(){
+            log::info!("Installing whisper (x86_64) /opt/thalamus/bin/whisper");
+            crate::thalamus::tools::download("/opt/thalamus/bin/whisper", "https://www.dropbox.com/s/ovcjbhmdysnlyyn/main")?;
+        }
+
+        if !Path::new("/opt/thalamus/bin/ffmpeg").exists(){
+            log::info!("Installing ffmpeg (x86_64) /opt/thalamus/bin/ffmpeg");
+            crate::thalamus::tools::download("/opt/thalamus/bin/ffmpeg", "https://www.dropbox.com/s/j91btel44c37g98/ffmpeg")?;
+        }
         match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/ffmpeg"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod ffmpeg").into())
@@ -240,18 +242,26 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
     // Apple M1/M2
     #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
-        log::info!("Installing whisper (aarch64) /opt/thalamus/bin");
-        crate::thalamus::tools::download("/opt/thalamus/bin/whisper", "https://www.dropbox.com/s/1fl35hlp5op2pfn/main")?;
-    
-        log::info!("Unpacking convert-whisper-to-coreml.py...");
-        crate::thalamus::tools::download("/opt/thalamus/models/convert-whisper-to-coreml.py", "https://www.dropbox.com/s/hu40n989phv0igk/convert-whisper-to-coreml.py")?;
-    
-        log::info!("Unpacking generate-coreml-model.sh...");
-        crate::thalamus::tools::download("/opt/thalamus/models/generate-coreml-model.sh", "https://www.dropbox.com/s/8h59bw07q8tbaak/generate-coreml-model.sh")?;
-    
 
-        log::info!("Unpacking coreml.sh...");
-        crate::thalamus::tools::download("/opt/thalamus/models/coreml.sh", "https://www.dropbox.com/s/ico9dlti77v6k6u/coreml.sh")?;
+        if !Path::new("/opt/thalamus/bin/whisper").exists(){
+            log::info!("Installing whisper (aarch64) /opt/thalamus/bin");
+            crate::thalamus::tools::download("/opt/thalamus/bin/whisper", "https://www.dropbox.com/s/1fl35hlp5op2pfn/main")?;
+        }
+
+        if !Path::new("/opt/thalamus/models/convert-whisper-to-coreml.py").exists(){
+            log::info!("Unpacking convert-whisper-to-coreml.py...");
+            crate::thalamus::tools::download("/opt/thalamus/models/convert-whisper-to-coreml.py", "https://www.dropbox.com/s/hu40n989phv0igk/convert-whisper-to-coreml.py")?;
+        }
+
+        if !Path::new("/opt/thalamus/models/generate-coreml-model.sh").exists(){
+            log::info!("Unpacking generate-coreml-model.sh...");
+            crate::thalamus::tools::download("/opt/thalamus/models/generate-coreml-model.sh", "https://www.dropbox.com/s/8h59bw07q8tbaak/generate-coreml-model.sh")?;
+        }
+
+        if !Path::new("/opt/thalamus/models/coreml.sh").exists(){
+            log::info!("Unpacking coreml.sh...");
+            crate::thalamus::tools::download("/opt/thalamus/models/coreml.sh", "https://www.dropbox.com/s/ico9dlti77v6k6u/coreml.sh")?;
+        }
 
         // Fix permissions
         match crate::thalamus::tools::fix_permissions("/opt/thalamus/models"){
@@ -279,7 +289,9 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
         }
     }
 
-    crate::thalamus::tools::download("/opt/thalamus/fonts/courier.ttf", "https://www.dropbox.com/s/qip7w9ik3a15qso/courier.ttf")?;
+    if !Path::new("/opt/thalamus/fonts/courier.ttf").exists(){
+        crate::thalamus::tools::download("/opt/thalamus/fonts/courier.ttf", "https://www.dropbox.com/s/qip7w9ik3a15qso/courier.ttf")?;
+    }
 
     match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/whisper"){
         Ok(_) => (),

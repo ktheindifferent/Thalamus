@@ -116,24 +116,33 @@ pub fn install() -> Result<()> {
         }
 
         // Install wget
-        match crate::thalamus::tools::brew_install("wget"){
-            Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1").into()),
+        if !Path::new("/opt/homebrew/bin/wget").exists(){
+            match crate::thalamus::tools::brew_install("wget"){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1").into()),
+            }
         }
 
         // Install ffmpeg
-        match crate::thalamus::tools::brew_install("ffmpeg"){
-            Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ffmpeg").into()),
-        }
-        match crate::thalamus::tools::ln("/opt/homebrew/bin/ffmpeg", "/opt/thalamus/bin/ffmpeg"){
-            Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
+        if !Path::new("/opt/homebrew/bin/ffmpeg").exists(){
+            match crate::thalamus::tools::brew_install("ffmpeg"){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ffmpeg").into()),
+            }
         }
 
-        match crate::thalamus::tools::ln("/opt/homebrew/bin/wget", "/opt/thalamus/bin/wget"){
-            Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
+        if !Path::new("/opt/thalamus/bin/ffmpeg").exists(){
+            match crate::thalamus::tools::ln("/opt/homebrew/bin/ffmpeg", "/opt/thalamus/bin/ffmpeg"){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
+            }
+        }
+
+        if !Path::new("/opt/thalamus/bin/wget").exists(){
+            match crate::thalamus::tools::ln("/opt/homebrew/bin/wget", "/opt/thalamus/bin/wget"){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
+            }
         }
 
 
@@ -146,21 +155,16 @@ pub fn install() -> Result<()> {
     }
 
 
-
+    // TODO: check for wget install and use apt, dnf, etc to install if not
     #[cfg(all(target_os = "linux"))] {
-        match crate::thalamus::tools::ln("/bin/wget", "/opt/thalamus/bin/wget"){
-            Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
+        if !Path::new("/opt/thalamus/bin/wget").exists(){
+            match crate::thalamus::tools::ln("/bin/wget", "/opt/thalamus/bin/wget"){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
+            }
         }
     }
 
-
-
-
-    match crate::thalamus::tools::ln("/opt/homebrew/bin/wget", "/opt/thalamus/bin/wget"){
-        Ok(_) => {},
-        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
-    }
 
 
 
@@ -223,11 +227,13 @@ pub fn install_client() -> Result<()> {
         Err(_) => {},
     }
 
+    if !Path::new("/opt/thalamusc/test.wav").exists(){
+        crate::thalamus::tools::download("/opt/thalamusc/test.wav", "https://www.dropbox.com/s/j55gxifpi5s62t4/test.wav")?;
+    }
 
-    crate::thalamus::tools::download("/opt/thalamusc/test.wav", "https://www.dropbox.com/s/j55gxifpi5s62t4/test.wav")?;
-    
-    crate::thalamus::tools::download("/opt/thalamusc/test.jpg", "https://www.dropbox.com/s/socxvceshvxovpe/test.jpg")?;
-    
+    if !Path::new("/opt/thalamusc/test.jpg").exists(){
+        crate::thalamus::tools::download("/opt/thalamusc/test.jpg", "https://www.dropbox.com/s/socxvceshvxovpe/test.jpg")?;
+    }
 
     return Ok(());
 }
