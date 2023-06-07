@@ -57,35 +57,17 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
 pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     #[cfg(all(target_arch = "x86_64", target_os = "linux"))] {
         log::info!("Unpacking SRGAN");
-        let data = include_bytes!("../../../../packages/srgan/linux/amd64/srgan");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/bin/srgan")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
+        crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/l4smcanvwjf3huy/srgan")?;
     }
 
     #[cfg(all(target_arch = "aarch64", target_os = "linux"))] {
         log::info!("Unpacking SRGAN");
-        let data = include_bytes!("../../../../packages/srgan/linux/aarch64/srgan");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/bin/srgan")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
+        crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/sgf76zwss8m4xu3/srgan")?;
     }
 
     #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
         log::info!("Unpacking SRGAN");
-        let data = include_bytes!("../../../../packages/srgan/apple/aarch64/srgan");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/bin/srgan")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
+        crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/52imqf6clftie47/srgan")?;
     }
 
     Ok(())

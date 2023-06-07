@@ -223,23 +223,11 @@ pub fn install_client() -> Result<()> {
         Err(_) => {},
     }
 
-    log::info!("Unpacking test.wav...");
-    let data = include_bytes!("../../packages/whisper/test.wav");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/thalamusc/test.wav")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
 
-    log::info!("Unpacking test.jpg...");
-    let data = include_bytes!("../../packages/srgan/test.jpg");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/thalamusc/test.jpg")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
+    crate::thalamus::tools::download("/opt/thalamusc/test.wav", "https://www.dropbox.com/s/j55gxifpi5s62t4/test.wav")?;
+    
+    crate::thalamus::tools::download("/opt/thalamusc/test.jpg", "https://www.dropbox.com/s/socxvceshvxovpe/test.jpg")?;
+    
 
     return Ok(());
 }

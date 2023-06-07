@@ -49,41 +49,19 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
 
 pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
-
-
-    #[cfg(all(target_arch = "x86_64", target_os = "linux"))] {
-        log::info!("Unpacking llama.cpp");
-        let data = include_bytes!("../../../packages/llama.cpp/linux/amd64/native/main");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/bin/llama")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
+    if !Path::new("/opt/thalamus/bin/llama").exists(){
+        #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
+            crate::thalamus::tools::download("/opt/thalamus/bin/llama", "https://www.dropbox.com/s/oaim2iya4jt2l69/main")?;
+        }
+        #[cfg(all(target_arch = "aarch64", target_os = "linux"))] {
+            crate::thalamus::tools::download("/opt/thalamus/bin/llama", "https://www.dropbox.com/s/5cxh3hduwwjv0vv/main")?;
+        }
+        #[cfg(all(target_arch = "x86_64", target_os = "linux"))] {
+            crate::thalamus::tools::download("/opt/thalamus/bin/llama", "https://www.dropbox.com/s/93sj2fruleo80y0/main")?;
         }
     }
 
-    #[cfg(all(target_arch = "aarch64", target_os = "linux"))] {
-        log::info!("Unpacking llama.cpp");
-        let data = include_bytes!("../../../packages/llama.cpp/linux/aarch64/native/main");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/bin/llama")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
-    }
-
-    #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
-        log::info!("Unpacking llama.cpp");
-        let data = include_bytes!("../../../packages/llama.cpp/apple/aarch64/main");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/bin/llama")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
-    }
-
+    
     // Download quantized 7B llama model from Open Sam Foundation (OSF)
     if !Path::new("/opt/thalamus/models/llama/7B/ggml-model-q4_0.bin").exists(){
         log::warn!("ggml-base.bin is missing.....downloading it from https://www.dropbox.com/s/rxvd04dhxxgkfh8/ggml-model-q4_0.bin");

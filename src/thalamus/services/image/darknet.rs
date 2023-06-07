@@ -47,15 +47,15 @@ pub fn darknet_image_with_gpu(file_path: String) -> Result<String, String> {
 }
 
 pub fn install() -> Result<(), crate::thalamus::setup::Error> {
-    let data = include_bytes!("../../../scripts/darknet/darknet.zip");
+    // let data = include_bytes!("../../../scripts/darknet/darknet.zip");
 
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/sam/bin/darknet.zip")?;
+    // let mut pos = 0;
+    // let mut buffer = File::create("/opt/sam/bin/darknet.zip")?;
 
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
+    // while pos < data.len() {
+    //     let bytes_written = buffer.write(&data[pos..])?;
+    //     pos += bytes_written;
+    // }
 
     crate::sam::tools::extract_zip("/opt/sam/bin/darknet.zip", format!("/opt/sam/bin/"));
     crate::sam::tools::linux_cmd(format!("rm -rf /opt/sam/bin/darknet.zip"));

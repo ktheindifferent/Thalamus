@@ -178,37 +178,37 @@ pub fn install() -> Result<(), crate::thalamus::services::Error> {
         crate::thalamus::tools::cmd(format!("wget -O /opt/sam/models/vgg16.ot https://github.com/LaurentMazare/tch-rs/releases/download/mw/vgg16.ot"))?;
     }
 
-    let data = include_bytes!("../../../../packages/nst/fra_angelico.jpg");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/sam/models/nst/fra_angelico.jpg")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
+    // let data = include_bytes!("../../../../packages/nst/fra_angelico.jpg");
+    // let mut pos = 0;
+    // let mut buffer = File::create("/opt/sam/models/nst/fra_angelico.jpg")?;
+    // while pos < data.len() {
+    //     let bytes_written = buffer.write(&data[pos..])?;
+    //     pos += bytes_written;
+    // }
 
-    let data = include_bytes!("../../../../packages/nst/paul_cézanne.jpg");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/sam/models/nst/paul_cézanne.jpg")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
+    // let data = include_bytes!("../../../../packages/nst/paul_cézanne.jpg");
+    // let mut pos = 0;
+    // let mut buffer = File::create("/opt/sam/models/nst/paul_cézanne.jpg")?;
+    // while pos < data.len() {
+    //     let bytes_written = buffer.write(&data[pos..])?;
+    //     pos += bytes_written;
+    // }
 
-    let data = include_bytes!("../../../../packages/nst/sassetta.jpg");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/sam/models/nst/sassetta.jpg")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
+    // let data = include_bytes!("../../../../packages/nst/sassetta.jpg");
+    // let mut pos = 0;
+    // let mut buffer = File::create("/opt/sam/models/nst/sassetta.jpg")?;
+    // while pos < data.len() {
+    //     let bytes_written = buffer.write(&data[pos..])?;
+    //     pos += bytes_written;
+    // }
 
-    let data = include_bytes!("../../../../packages/nst/vincent_van_gogh.jpg");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/sam/models/nst/vincent_van_gogh.jpg")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
+    // let data = include_bytes!("../../../../packages/nst/vincent_van_gogh.jpg");
+    // let mut pos = 0;
+    // let mut buffer = File::create("/opt/sam/models/nst/vincent_van_gogh.jpg")?;
+    // while pos < data.len() {
+    //     let bytes_written = buffer.write(&data[pos..])?;
+    //     pos += bytes_written;
+    // }
 
     return Ok(());
 }

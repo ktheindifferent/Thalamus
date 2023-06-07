@@ -23,23 +23,23 @@ pub fn handle(_request: &Request) -> Result<Response, crate::thalamus::http::Err
 
 pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
-    log::info!("Unpacking OCNN: birds.tflite");
-    let data = include_bytes!("../../../../packages/ocnn/birds/birds.tflite");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/thalamus/models/ocnn/birds.tflite")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
+    // log::info!("Unpacking OCNN: birds.tflite");
+    // let data = include_bytes!("../../../../packages/ocnn/birds/birds.tflite");
+    // let mut pos = 0;
+    // let mut buffer = File::create("/opt/thalamus/models/ocnn/birds.tflite")?;
+    // while pos < data.len() {
+    //     let bytes_written = buffer.write(&data[pos..])?;
+    //     pos += bytes_written;
+    // }
 
-    log::info!("Unpacking OCNN: birds.txt");
-    let data = include_bytes!("../../../../packages/ocnn/birds/birds.txt");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/thalamus/models/ocnn/birds.txt")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
+    // log::info!("Unpacking OCNN: birds.txt");
+    // let data = include_bytes!("../../../../packages/ocnn/birds/birds.txt");
+    // let mut pos = 0;
+    // let mut buffer = File::create("/opt/thalamus/models/ocnn/birds.txt")?;
+    // while pos < data.len() {
+    //     let bytes_written = buffer.write(&data[pos..])?;
+    //     pos += bytes_written;
+    // }
 
     Ok(())
 }

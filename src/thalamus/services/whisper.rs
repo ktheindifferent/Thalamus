@@ -214,24 +214,7 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     }
 
 
-    log::info!("Unpacking convert-whisper-to-coreml.py...");
-    let data = include_bytes!("../../../packages/whisper/convert-whisper-to-coreml.py");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/thalamus/models/convert-whisper-to-coreml.py")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
 
-    
-    log::info!("Unpacking generate-coreml-model.sh...");
-    let data = include_bytes!("../../../packages/whisper/generate-coreml-model.sh");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/thalamus/models/generate-coreml-model.sh")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
 
     
 
@@ -244,55 +227,31 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
     #[cfg(target_arch = "x86_64")]{
         log::info!("Installing whisper (x86_64) /opt/thalamus/bin/whisper");
-        let data = include_bytes!("../../../packages/whisper/linux/amd64/native/main");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/bin/whisper")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
-
-
-        // Install ffmpeg
-        let data = include_bytes!("../../../packages/ffmpeg/amd64/ffmpeg");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/bin/ffmpeg")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
+        crate::thalamus::tools::download("/opt/thalamus/bin/whisper", "https://www.dropbox.com/s/ovcjbhmdysnlyyn/main")?;
+    
+        crate::thalamus::tools::download("/opt/thalamus/bin/ffmpeg", "https://www.dropbox.com/s/j91btel44c37g98/ffmpeg")?;
     
         match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/ffmpeg"){
             Ok(_) => (),
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod ffmpeg").into())
         }
 
-
-
     }
 
     // Apple M1/M2
     #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
         log::info!("Installing whisper (aarch64) /opt/thalamus/bin");
-        let data = include_bytes!("../../../packages/whisper/apple/aarch64/main");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/bin/whisper")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
-
-
+        crate::thalamus::tools::download("/opt/thalamus/bin/whisper", "https://www.dropbox.com/s/1fl35hlp5op2pfn/main")?;
+    
+        log::info!("Unpacking convert-whisper-to-coreml.py...");
+        crate::thalamus::tools::download("/opt/thalamus/models/convert-whisper-to-coreml.py", "https://www.dropbox.com/s/hu40n989phv0igk/convert-whisper-to-coreml.py")?;
+    
+        log::info!("Unpacking generate-coreml-model.sh...");
+        crate::thalamus::tools::download("/opt/thalamus/models/generate-coreml-model.sh", "https://www.dropbox.com/s/8h59bw07q8tbaak/generate-coreml-model.sh")?;
+    
 
         log::info!("Unpacking coreml.sh...");
-        let data = include_bytes!("../../../packages/whisper/coreml.sh");
-        let mut pos = 0;
-        let mut buffer = File::create("/opt/thalamus/models/coreml.sh")?;
-        while pos < data.len() {
-            let bytes_written = buffer.write(&data[pos..])?;
-            pos += bytes_written;
-        }
-    
+        crate::thalamus::tools::download("/opt/thalamus/models/coreml.sh", "https://www.dropbox.com/s/ico9dlti77v6k6u/coreml.sh")?;
 
         // Fix permissions
         match crate::thalamus::tools::fix_permissions("/opt/thalamus/models"){
@@ -320,16 +279,8 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
         }
     }
 
-    let data = include_bytes!("../../../fonts/courier.ttf");
-    let mut pos = 0;
-    let mut buffer = File::create("/opt/thalamus/fonts/courier.ttf")?;
-    while pos < data.len() {
-        let bytes_written = buffer.write(&data[pos..])?;
-        pos += bytes_written;
-    }
+    crate::thalamus::tools::download("/opt/thalamus/fonts/courier.ttf", "https://www.dropbox.com/s/qip7w9ik3a15qso/courier.ttf")?;
 
-
-    
     match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/whisper"){
         Ok(_) => (),
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod whisper").into())
