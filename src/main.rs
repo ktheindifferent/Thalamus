@@ -20,7 +20,7 @@
 // - publish 0.0.1
 
 // TODO (0.0.2):
-// - Configurable web pool size
+// - Configurable web pool size, port, etc.
 // - Automatic updates via the Open Sam Foundation
 // - Nural Style Transfer using ANE
 // - Speech Synthesis using ANE
@@ -28,7 +28,8 @@
 // - Encrypted wav/response support?
 // - HTTP/S encryption support?
 // - IBM Watson TTS support?
-// - deepspeech TTS support
+// - deepspeech TTS support?
+// - apple natice TTS support?
 // - Ability to opt-in to send training data to the Open Sam Foundation
 // - YoloV8 Support
 

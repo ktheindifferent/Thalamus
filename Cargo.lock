@@ -4698,10 +4698,9 @@ dependencies = [
 
 [[package]]
 name = "thalamus"
-version = "0.0.1"
+version = "0.0.11"
 dependencies = [
  "clearscreen",
- "enum-as-inner",
  "error-chain",
  "hound",
  "libp2p",
