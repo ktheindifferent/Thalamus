@@ -94,16 +94,16 @@ pub fn preinit(){
 
     sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
     
-    if Path::new("/opt/thalamus/").exists() {
-        let touch_status = crate::thalamus::tools::touch("/opt/thalamus/output.log".to_string());
-        if touch_status.is_ok() {
-            SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).with_output_file("/opt/thalamus/output.log".to_string()).init().unwrap();
-        } else {
-            SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
-        }
-    } else {
+    // if Path::new("/opt/thalamus/").exists() {
+    //     let touch_status = crate::thalamus::tools::touch("/opt/thalamus/output.log".to_string());
+    //     if touch_status.is_ok() {
+    //         SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).with_output_file("/opt/thalamus/output.log".to_string()).init().unwrap();
+    //     } else {
+    //         SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
+    //     }
+    // } else {
         simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
-    }
+    // }
 
 
     // let responder = mdns_responder_rs::Responder::new().unwrap();
