@@ -20,6 +20,7 @@
 // - publish 0.0.1
 
 // TODO (0.0.2):
+// - capablities framework for nodes
 // - apple natice TTS support?
 // - deepspeech TTS support?
 // - IBM Watson TTS support?
@@ -48,86 +49,107 @@
 
 // use std::error::Error;
 use tokio::task;
-
-
-
 use rouille::Server;
 use rouille::Response;
+
+const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
+
+
 
 #[tokio::main]
 async fn main() {
 
     // Escelate to sudo, setup logging, etc.
-    thalamus::preinit();
+    clearscreen::clear().unwrap();
+    sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
+    simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_utc_timestamps().init().unwrap();
+
+    // Print Application Art and Version Information
+    println!("████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ ");
+    println!("   ██    ██   ██ ██   ██ ██      ██   ██ ████  ████ ██    ██ ██      ");
+    println!("   ██    ███████ ███████ ██      ███████ ██ ████ ██ ██    ██ ███████ ");
+    println!("   ██    ██   ██ ██   ██ ██      ██   ██ ██  ██  ██ ██    ██      ██ ");
+    println!("   ██    ██   ██ ██   ██ ███████ ██   ██ ██      ██  ██████  ███████ ");
+    println!("Copyright 2021-2023 The Open Sam Foundation (OSF)");
+    match VERSION {
+        Some(v) => println!("Version: {}", v),
+        None => println!("Version: Unknown"),
+    };
+
+    // Install Thalamus
+    match thalamus::thalamus::setup::install(){
+        Ok(_) => log::warn!("Installed thalamus"),
+        Err(e) => log::error!("Error installing thalamus: {}", e),
+    };
+
+    // Setup Thalamus Client
+    let mut thalamus = thalamus::ThalamusClient::load().unwrap();
 
     // Respond to mDNS queries with thalamus service information
-    thalamus::start_mdns_responder().await;
-
-
+    thalamus.start_mdns_responder().await;
 
     // Initialize the p2p server
-    task::spawn(async {
+    let p2p_server = task::spawn(async {
         thalamus::p2p::init_p2p_server().await.unwrap();
     });
-
-    // task::spawn(async {
-    //     thalamus::p2p::init_p2p_client().await;
-    // });
-
-    let mut thalamus = thalamus::ThalamusClient::load().unwrap();
-    
 
     match thalamus::thalamus::setup::install_client(){
         Ok(_) => log::warn!("Installed thalamus client"),
         Err(e) => log::error!("Error installing thalamus client: {}", e),
     };
 
-    match std::env::current_exe() {
-        Ok(exe_path) => {
-            let current_exe_path = format!("{}", exe_path.display());
-
-            if current_exe_path.as_str() == "/opt/thalamus/bin/thalamus"{
-                let server = Server::new("0.0.0.0:8050", move |request| {
-                    match thalamus::thalamus::http::handle(request){
-                        Ok(request) => {
-                            log::info!("{:?}", request);
-                            return request;
-                        },
-                        Err(err) => {
-                            log::error!("HTTP_ERROR: {}", err);
-                            return Response::empty_404();
-                        }
-                    }
-                }).unwrap().pool_size(6);
-            
-                loop {
-                    server.poll();
-                }
-            } else {
-                match thalamus::thalamus::setup::install(){
-                    Ok(_) => log::warn!("Installed thalamus"),
-                    Err(e) => log::error!("Error installing thalamus: {}", e),
-                };
+    let discovery_server = task::spawn(async {
+        let mut thalamus = thalamus::ThalamusClient::load().unwrap();
+        let mut discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
+        let mut i = 0;
+        loop{
+            discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
+            thalamus.nodex_discovery().await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            thalamus = thalamus::ThalamusClient::load().unwrap();
+            i += 1;
+            if i > 8 {
+                discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
+                i = 0;
             }
-        },
-        Err(e) => log::error!("failed to get current exe path: {e}"),
-    };
-
-
-
-    let mut discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
-    let mut i = 0;
-    loop{
-        discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
-        thalamus.nodex_discovery().await;
-        std::thread::sleep(std::time::Duration::from_secs(1));
-        thalamus = thalamus::ThalamusClient::load().unwrap();
-        i += 1;
-        if i > 8 {
-            discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
-            i = 0;
         }
-    }
+    });
+
+    let main_server = task::spawn(async {
+        match std::env::current_exe() {
+            Ok(exe_path) => {
+                let current_exe_path = format!("{}", exe_path.display());
+
+                if current_exe_path.as_str() == "/opt/thalamus/bin/thalamus"{
+                    let server = Server::new("0.0.0.0:8050", move |request| {
+                        match thalamus::thalamus::http::handle(request){
+                            Ok(request) => {
+                                log::info!("{:?}", request);
+                                return request;
+                            },
+                            Err(err) => {
+                                log::error!("HTTP_ERROR: {}", err);
+                                return Response::empty_404();
+                            }
+                        }
+                    }).unwrap().pool_size(6);
+                
+                    loop {
+                        server.poll();
+                    }
+                } 
+            },
+            Err(e) => log::error!("failed to get current exe path: {e}"),
+        }
+    });
+
+    tokio::join!(
+        p2p_server,
+        discovery_server,
+        main_server,
+    );
+    loop {}
+
 }
 
 

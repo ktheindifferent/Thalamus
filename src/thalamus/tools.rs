@@ -23,17 +23,10 @@ pub mod netscan;
 error_chain! {
     foreign_links {
         Io(std::io::Error);
-        Hound(hound::Error);
+        // Hound(hound::Error);
     }
 }
 
-pub fn python3(command: String) -> String{
-    let cmd = Command::new("python3")
-    .arg(command.clone())
-    .output()
-    .unwrap();
-    return String::from_utf8_lossy(&cmd.stdout).to_string();
-}
 
 pub fn hash_check(file_path: &str) -> Result<String>{
     let f = File::open(file_path)?;
@@ -53,48 +46,10 @@ pub fn hash_check(file_path: &str) -> Result<String>{
 
 pub fn get_file_size(file_path: &str) -> Result<i64>{
     let f = File::open(file_path)?;
-
     let x = f.metadata()?.len();
-   
     return Ok(x as i64);
 }
 
-
-// // pub fn idfk(command: &str) -> String {
-//     let child = Command::new("/bin/python3")
-//     .arg(command)
-//     .stdout(Stdio::piped())
-//     .spawn()
-//     .expect("failed to execute child");
-
-//     let output = child
-//         .wait_with_output()
-//         .expect("failed to wait on child");
-
-//     return String::from_utf8_lossy(&output.stdout).to_string();
-// // }
-
-pub fn pip3(command: &str) -> String {
-    let child = Command::new("/bin/pip3")
-    .arg(command)
-    .stdout(Stdio::piped())
-    .spawn()
-    .expect("failed to execute child");
-
-    let output = child
-        .wait_with_output()
-        .expect("failed to wait on child");
-
-    return String::from_utf8_lossy(&output.stdout).to_string();
-}
-
-// pub fn cmd(command: String) -> Result<String>{
-//     let cmd = Command::new("sh")
-//     .arg("-c")
-//     .arg(command.clone())
-//     .output()?;
-//     return Ok(String::from_utf8_lossy(&cmd.stdout).to_string());
-// }
 
 pub fn dbash(command: &str) -> Result<String>{
     let child = Command::new("/usr/bin/sudo")
@@ -570,6 +525,8 @@ pub fn llama(model: &str, prompt: &str) -> Result<String>{
     let child = Command::new("/opt/thalamus/bin/llama")
     .arg("-m")
     .arg(format!("/opt/thalamus/models/llama/{}/ggml-model-q4_0.bin", model))
+    .arg("-n")
+    .arg("256")
     .arg("-p")
     .arg(format!("\"{}\"", prompt))
     .stdout(Stdio::piped())
@@ -595,30 +552,30 @@ pub fn llama(model: &str, prompt: &str) -> Result<String>{
 // ./models/generate-coreml-model.sh large
 
 
-pub fn does_wav_have_sounds(audio_filename: String) -> Result<bool>{
-    let mut has_sounds = false;
-	let threshold = 14000 as i16;
+// pub fn does_wav_have_sounds(audio_filename: String) -> Result<bool>{
+//     let mut has_sounds = false;
+// 	let threshold = 14000 as i16;
 
-	let mut audio_file = hound::WavReader::open(audio_filename)?;
+// 	let mut audio_file = hound::WavReader::open(audio_filename)?;
 
-	let raw_samples = audio_file.samples::<i16>().into_iter().map(|x| x.unwrap()).collect::<Vec<i16>>();
+// 	let raw_samples = audio_file.samples::<i16>().into_iter().map(|x| x.unwrap()).collect::<Vec<i16>>();
 
-	let mut samples: Vec<i16> = Vec::new();
+// 	let mut samples: Vec<i16> = Vec::new();
 
-	for i in 0..=raw_samples.len() - 1 {
-		if i % 100 == 0 {
+// 	for i in 0..=raw_samples.len() - 1 {
+// 		if i % 100 == 0 {
 	
 
-			if raw_samples[i as usize] > threshold || raw_samples[i as usize] < -threshold{
-				has_sounds = true;
-			}
+// 			if raw_samples[i as usize] > threshold || raw_samples[i as usize] < -threshold{
+// 				has_sounds = true;
+// 			}
 
-			samples.push(raw_samples[i as usize]);
-		}
-	}
+// 			samples.push(raw_samples[i as usize]);
+// 		}
+// 	}
 
-    return Ok(has_sounds);
-}
+//     return Ok(has_sounds);
+// }
 
 
 pub fn find_mimetype(filename: &String) -> String{

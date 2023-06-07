@@ -25,77 +25,12 @@ extern crate rouille;
 pub mod thalamus;
 pub mod p2p;
 
-const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 
 
 
-pub async fn start_mdns_responder(){
-    task::spawn(async {
-        let network_interfaces = list_afinet_netifas().unwrap();
 
-        let mut responder = SimpleMdnsResponder::new(10);
-        let srv_name = Name::new_unchecked("_thalamus._tcp.local");
-    
-        for (_name, ip) in network_interfaces.iter() {
-            if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
-                match *ip {
-                    IpAddr::V4(ipv4) => { 
-                        responder.add_resource(ResourceRecord::new(
-                            srv_name.clone(),
-                            CLASS::IN,
-                            10,
-                            RData::A(A { address: ipv4.into() }),
-                        )).await;
-                     },
-                    IpAddr::V6(_ipv6) => { /* handle IPv6 */ }
-                }
-
-                
-            }
-        }
-    
-        responder.add_resource(ResourceRecord::new(
-            srv_name.clone(),
-            CLASS::IN,
-            10,
-            RData::SRV(SRV {
-                port: 8050,
-                priority: 0,
-                weight: 0,
-                target: srv_name
-            })
-        )).await;
-
-        yield_now().await;
-        
-    });
-}
-
-
-pub fn preinit(){
-    // cls
-    clearscreen::clear().unwrap();
-
-    sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
-    
-    simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_utc_timestamps().init().unwrap();
-
-    // Print Application Art and Version Information
-    println!("████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ ");
-    println!("   ██    ██   ██ ██   ██ ██      ██   ██ ████  ████ ██    ██ ██      ");
-    println!("   ██    ███████ ███████ ██      ███████ ██ ████ ██ ██    ██ ███████ ");
-    println!("   ██    ██   ██ ██   ██ ██      ██   ██ ██  ██  ██ ██    ██      ██ ");
-    println!("   ██    ██   ██ ██   ██ ███████ ██   ██ ██      ██  ██████  ███████ ");
-    println!("Copyright 2021-2023 The Open Sam Foundation (OSF)");
-    match VERSION {
-        Some(v) => println!("Version: {}", v),
-        None => println!("Version: Unknown"),
-    };
-}
-
-
-
+/// Struct for storing all nodes connected to the client
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThalamusClient {
     pub nodes: Arc<Mutex<Vec<ThalamusNode>>>,
@@ -169,6 +104,7 @@ impl ThalamusClient {
                                 let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
                                 match existing_index {
                                     Some(index) => {
+                                        nodes[index].is_online = true;
                                         nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
                                         std::mem::drop(nodes);
                                         self.save();
@@ -183,6 +119,18 @@ impl ThalamusClient {
                             },
                             Err(e) => {
                                 log::error!("fetch_thalamus_version_error: {}", e);
+                                let mut nodes = nodex.lock().unwrap();
+                                let existing_index = nodes.clone().iter().position(|r| r.ip_address == format!("{}:{}", ipx, port).as_str());
+                                match existing_index {
+                                    Some(index) => {
+                                        nodes[index].is_online = false;
+                                        std::mem::drop(nodes);
+                                        self.save();
+                                    },
+                                    None => {
+                                        std::mem::drop(nodes);
+                                    }
+                                }
                             }
                         }
                     }
@@ -190,12 +138,52 @@ impl ThalamusClient {
             }
         }
 
-        // discovery = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
-
-     
         Ok(discovery)
     }
 
+    pub async fn start_mdns_responder(&mut self){
+        let network_interfaces = list_afinet_netifas().unwrap();
+        task::spawn(async move{
+            
+    
+            let mut responder = SimpleMdnsResponder::new(10);
+            let srv_name = Name::new_unchecked("_thalamus._tcp.local");
+        
+            for (_name, ip) in network_interfaces.iter() {
+                if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
+                    match *ip {
+                        IpAddr::V4(ipv4) => { 
+                            responder.add_resource(ResourceRecord::new(
+                                srv_name.clone(),
+                                CLASS::IN,
+                                10,
+                                RData::A(A { address: ipv4.into() }),
+                            )).await;
+                         },
+                        IpAddr::V6(_ipv6) => { /* handle IPv6 */ }
+                    }
+    
+                    
+                }
+            }
+        
+            responder.add_resource(ResourceRecord::new(
+                srv_name.clone(),
+                CLASS::IN,
+                10,
+                RData::SRV(SRV {
+                    port: 8050,
+                    priority: 0,
+                    weight: 0,
+                    target: srv_name
+                })
+            )).await;
+    
+            yield_now().await;
+            
+        });
+    }
+    
     pub async fn nodex_discovery(&mut self){
         let nodell = self.nodes.lock().unwrap();
         let nodess = nodell.clone();
@@ -239,18 +227,31 @@ impl ThalamusClient {
         let save_file = std::fs::read_to_string("/opt/thalamusc/clients.json");
         match save_file {
             Ok(save_data) => {
-                let v: ThalamusClient = serde_json::from_str(&save_data)?;
-                return Ok(v);
+                let v: Result<ThalamusClient, _> = serde_json::from_str(&save_data);
+                match v {
+                    Ok(v2) => {
+                        return Ok(v2);
+                    },
+                    Err(e) => {
+                        log::error!("{}", format!("Unable to read save file: {}", e));
+                        let new_c = ThalamusClient::new();
+                        new_c.save();
+                        return Ok(new_c);
+                    }
+                }
+                
             },
             Err(e) => {
-                log::error!("{}", format!("Unable to read file: {}", e));
-                return Ok(ThalamusClient::new());
+                log::error!("{}", format!("Unable to read save file: {}", e));
+                let new_c = ThalamusClient::new();
+                new_c.save();
+                return Ok(new_c);
             }
         }
     }
 
-    pub fn select_optimal_node(&self, node_type: String) -> Result<ThalamusNode, Box<dyn Error>> {
-        let nodex = self.nodes.lock().unwrap();
+    pub fn select_optimal_node(&self, node_type: String) -> Result<ThalamusNode, Box<dyn Error + '_>> {
+        let nodex = self.nodes.lock()?;
         let nodes = nodex.clone();
         std::mem::drop(nodex);
 
@@ -285,11 +286,6 @@ impl ThalamusClient {
 
 
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct VersionReply {
-    pub version: String,
-    pub pid: String,
-}
 pub fn fetch_version(host: &str) -> Result<VersionReply, Box<dyn Error>> {
     let client = reqwest::blocking::Client::builder().build()?;
     return Ok(client.get(format!("http://{}/api/thalamus/version", host)).send()?.json()?);
@@ -300,16 +296,11 @@ pub async fn async_fetch_version(host: &str) -> Result<VersionReply, Box<dyn Err
     return Ok(client.get(format!("http://{}/api/thalamus/version", host)).send().await?.json().await?);
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct STTReply {
-    pub text: String,
-    pub time: f64,
-    pub response_type: Option<String>,
-}
 
 
 
 
+/// Struct for storing node information
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThalamusNode {
     pub pid: String,
@@ -319,6 +310,7 @@ pub struct ThalamusNode {
     pub jobs: Vec<ThalamusNodeJob>,
     pub last_ping: i64,
     pub stats: ThalamusNodeStats,
+    pub is_online: bool,
 }
 impl ThalamusNode {
     pub fn new(pid: String, version: String, ip_address: String, port: u16) -> ThalamusNode {
@@ -331,6 +323,7 @@ impl ThalamusNode {
             port: port,
             last_ping: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64,
             stats: ThalamusNodeStats::new(),
+            is_online: true,
         };
         let stats = ThalamusNodeStats::calculate(node.clone());
         node.stats = stats;
@@ -431,7 +424,7 @@ impl ThalamusNode {
 
         let extension = parts[parts.len() - 1];
 
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as i64;
 
         let new_file_name = format!("{}.{}", timestamp, extension);
 
@@ -458,6 +451,18 @@ impl ThalamusNode {
         return Ok(bytes.to_string());
     }
 
+    pub fn tts(&self, prompt: String) -> Result<Vec<u8>, Box<dyn Error>>{
+        let params = [("prompt", prompt.as_str())];
+
+        let client = reqwest::blocking::Client::builder().timeout(None).build()?;
+
+        let bytes = client.post(format!("http://{}/api/services/tts", self.ip_address.clone()))
+        .form(&params)
+        .send()?.bytes()?;
+
+        return Ok(bytes.to_vec());
+    }
+
     pub fn nodex(&self) -> Result<Vec<ThalamusNode>, Box<dyn Error>>{
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -471,6 +476,7 @@ impl ThalamusNode {
     }
 }
 
+/// Struct for storing the jobs of each node
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThalamusNodeJob {
     pub oid: String,
@@ -488,6 +494,7 @@ impl ThalamusNodeJob {
     }
 }
 
+/// Struct for storing the stats of each node
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThalamusNodeStats {
     pub stt_tiny: i64,
@@ -506,6 +513,13 @@ pub struct ThalamusNodeStats {
     pub vwav_large: i64,
     pub vwav_score: i64,
     pub srgan: i64,
+    pub espeak_tts: i64,
+    pub apple_tts: i64,
+    pub google_tts: i64,
+    pub watson_tts: i64,
+    pub deepspeech_tts: i64,
+    pub tts_score: i64,
+    pub nst_score: i64,
 }
 impl ThalamusNodeStats {
     pub fn new() -> ThalamusNodeStats {
@@ -526,124 +540,134 @@ impl ThalamusNodeStats {
             vwav_large: 0,
             vwav_score: 0, 
             srgan: 0,
+            espeak_tts: 0,
+            apple_tts: 0,
+            google_tts: 0,
+            watson_tts: 0,
+            deepspeech_tts: 0,
+            tts_score: 0,
+            nst_score: 0
         }
     }
 
     pub fn calculate(node: ThalamusNode) -> ThalamusNodeStats {
 
+        log::info!("Calculating stats for node {}.....", node.pid);
 
-        log::warn!("Calculating stats for node {}.....", node.pid);
-
-
-        log::warn!("{}: Running STT Tiny test...", node.pid);
+        // Test STT Tiny
+        log::info!("{}: Running STT Tiny test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _stt = node.stt_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let tiny_stt = end_timestamp - start_timestamp;
-        log::warn!("{}: STT Tiny test complete in {} miliseconds", node.pid, tiny_stt);
+        log::info!("{}: STT Tiny test complete in {} miliseconds", node.pid, tiny_stt);
         
-        log::warn!("{}: Running STT Base test...", node.pid);
+        // Test STT Base
+        log::info!("{}: Running STT Base test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _stt = node.stt_base("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let basic_stt = end_timestamp - start_timestamp;
-        log::warn!("{}: STT Base test complete in {} miliseconds", node.pid, basic_stt);
+        log::info!("{}: STT Base test complete in {} miliseconds", node.pid, basic_stt);
         
-        log::warn!("{}: Running STT Medium test...", node.pid);
+        // Test STT Medium
+        log::info!("{}: Running STT Medium test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _stt = node.stt_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let medium_stt = end_timestamp - start_timestamp;
-        log::warn!("{}: STT Medium test complete in {} miliseconds", node.pid, medium_stt);
+        log::info!("{}: STT Medium test complete in {} miliseconds", node.pid, medium_stt);
 
-        log::warn!("{}: Running STT Large test...", node.pid);
+        // Test STT Large
+        log::info!("{}: Running STT Large test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _stt = node.stt_large("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let large_stt = end_timestamp - start_timestamp;
-        log::warn!("{}: STT Large test complete in {} miliseconds", node.pid, large_stt);
+        log::info!("{}: STT Large test complete in {} miliseconds", node.pid, large_stt);
         
+        // Calculate average STT score
         let stt_score = (tiny_stt + basic_stt + medium_stt + large_stt) / 4;
 
-
-        log::warn!("{}: Running VWAV Tiny test...", node.pid);
+        // Test VWAV Tiny
+        log::info!("{}: Running VWAV Tiny test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _stt = node.vwav_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let vwav_tiny = end_timestamp - start_timestamp;
-        log::warn!("{}: VWAV Tiny test complete in {} miliseconds", node.pid, vwav_tiny);
+        log::info!("{}: VWAV Tiny test complete in {} miliseconds", node.pid, vwav_tiny);
         
-        log::warn!("{}: Running VWAV Base test...", node.pid);
+        // Test VWAV Base
+        log::info!("{}: Running VWAV Base test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _stt = node.vwav_base("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let vwav_base = end_timestamp - start_timestamp;
-        log::warn!("{}: VWAV Base test complete in {} miliseconds", node.pid, vwav_base);
+        log::info!("{}: VWAV Base test complete in {} miliseconds", node.pid, vwav_base);
         
-        log::warn!("{}: Running VWAV Medium test...", node.pid);
+        // Test VWAV Medium
+        log::info!("{}: Running VWAV Medium test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _stt = node.vwav_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let vwav_medium = end_timestamp - start_timestamp;
-        log::warn!("{}: VWAV Medium test complete in {} miliseconds", node.pid, vwav_medium);
+        log::info!("{}: VWAV Medium test complete in {} miliseconds", node.pid, vwav_medium);
 
-        log::warn!("{}: Running VWAV Large test...", node.pid);
+        // Test VWAV Large
+        log::info!("{}: Running VWAV Large test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _stt = node.vwav_large("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let vwav_large = end_timestamp - start_timestamp;
-        log::warn!("{}: VWAV Large test complete in {} miliseconds", node.pid, vwav_large);
+        log::info!("{}: VWAV Large test complete in {} miliseconds", node.pid, vwav_large);
 
+        // Calculate average VWAV score
         let vwav_score = (vwav_tiny + vwav_base + vwav_medium + vwav_large) / 4;
 
-
-        
-        log::warn!("{}: Running LLAMA 7B test...", node.pid);
+        // Test LLAMA 7B
+        log::info!("{}: Running LLAMA 7B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "7B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let llama_tiny = end_timestamp - start_timestamp;
-        log::warn!("{}: LLAMA 7B test complete in {} miliseconds", node.pid, llama_tiny);
+        log::info!("{}: LLAMA 7B test complete in {} miliseconds", node.pid, llama_tiny);
 
-        log::warn!("{}: Running LLAMA 13B test...", node.pid);
+        // Test LLAMA 13B
+        log::info!("{}: Running LLAMA 13B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "13B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let llama_basic = end_timestamp - start_timestamp;
-        log::warn!("{}: LLAMA 13B test complete in {} miliseconds", node.pid, llama_tiny);
+        log::info!("{}: LLAMA 13B test complete in {} miliseconds", node.pid, llama_tiny);
 
-        log::warn!("{}: Running LLAMA 30B test...", node.pid);
+        // Test LLAMA 30B
+        log::info!("{}: Running LLAMA 30B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "30B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let llama_medium = end_timestamp - start_timestamp;
-        log::warn!("{}: LLAMA 30B test complete in {} miliseconds", node.pid, llama_tiny);
+        log::info!("{}: LLAMA 30B test complete in {} miliseconds", node.pid, llama_tiny);
 
-        log::warn!("{}: Running LLAMA 65B test...", node.pid);
+        // Test LLAMA 65B
+        log::info!("{}: Running LLAMA 65B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "65B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let llama_large = end_timestamp - start_timestamp;
-        log::warn!("{}: LLAMA 65B test complete in {} miliseconds", node.pid, llama_tiny);
+        log::info!("{}: LLAMA 65B test complete in {} miliseconds", node.pid, llama_tiny);
 
+        // Calculate average llama score
         let llama_score = (llama_tiny + llama_basic + llama_medium + llama_large) / 4;
 
-
-        log::warn!("{}: Running SRGAN test...", node.pid);
+        // Test SRGAN
+        log::info!("{}: Running SRGAN test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _stt = node.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let srgan = end_timestamp - start_timestamp;
         log::warn!("{}: SRGAN test complete in {} miliseconds", node.pid, srgan);
 
-        // let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-
-        // let mut file = std::fs::File::create(format!("/opt/thalamusc/{}", timestamp))?;
-        // let mut content =  Cursor::new(bytes);
-        // std::io::copy(&mut content, &mut file)?;
-
-
-        // TODO: Calculate stats
+        // Return stats
         return ThalamusNodeStats { 
             stt_tiny: tiny_stt,
             stt_base: basic_stt,
@@ -661,6 +685,28 @@ impl ThalamusNodeStats {
             vwav_large: vwav_large,
             vwav_score: vwav_score, 
             srgan: srgan,
+            espeak_tts: 0,
+            apple_tts: 0,
+            google_tts: 0,
+            watson_tts: 0,
+            deepspeech_tts: 0,
+            tts_score: 0,
+            nst_score: 0
         };
     }
+}
+
+/// Auxilary Struct for API Version replies
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct VersionReply {
+    pub version: String,
+    pub pid: String,
+}
+
+/// Auxilary Struct for API STT replies
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct STTReply {
+    pub text: String,
+    pub time: f64,
+    pub response_type: Option<String>,
 }
