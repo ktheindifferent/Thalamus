@@ -13,7 +13,7 @@
 use rouille::Request;
 use rouille::Response;
 use serde::{Serialize, Deserialize};
-use std::sync::{Arc, Mutex};
+
 
 // store application version as a const
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
@@ -62,7 +62,7 @@ pub fn handle(request: &Request) -> Result<Response> {
     }
 
     if request.url().contains("/api/nodex"){
-        let mut thalamus = crate::ThalamusClient::load().unwrap();
+        let thalamus = crate::ThalamusClient::load().unwrap();
         return Ok(Response::json(&thalamus.nodes.lock().unwrap().clone()));
     }
 

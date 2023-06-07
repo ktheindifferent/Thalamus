@@ -20,7 +20,7 @@ use std::fs::File;
 use std::io::Write;
 use std::io::Read;
 use rouille::post_input;
-use rouille::input::post::BufferedFile;
+
 use std::path::Path;
 
 pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Error> {

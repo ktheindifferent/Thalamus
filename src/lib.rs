@@ -1,16 +1,16 @@
-use std::thread;
+
 use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Serialize, Deserialize};
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
-use local_ip_address::local_ip;
+
 use local_ip_address::list_afinet_netifas;
-use std::fs::File;
-use rouille::Server;
-use rouille::Response;
+
+
+
 use simple_logger::SimpleLogger;
 use std::path::Path;
-use serde_json::{Value};
+
 use std::sync::{Arc, Mutex};
 
 extern crate rouille;
@@ -32,20 +32,20 @@ const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 // }
 use std::error::Error;
 use std::{net::IpAddr};
-use mdns::{Record, RecordKind};
-use futures_util::{pin_mut, stream::StreamExt};
-use std::time::Duration;
+
+use futures_util::{stream::StreamExt};
+
 use tokio::task;
 use tokio::task::yield_now;
 
 const SERVICE_NAME: &'static str = "_thalamus._tcp.local";
 use simple_mdns::async_discovery::SimpleMdnsResponder;
 use simple_dns::{Name, CLASS, ResourceRecord, rdata::{RData, A, SRV}};
-use std::net::Ipv4Addr;
 
-use simple_mdns::async_discovery::ServiceDiscovery;
-use std::net::SocketAddr;
-use std::str::FromStr;
+
+
+
+
 
 pub async fn start_mdns_responder(){
     task::spawn(async {
@@ -54,7 +54,7 @@ pub async fn start_mdns_responder(){
         let mut responder = SimpleMdnsResponder::new(10);
         let srv_name = Name::new_unchecked("_thalamus._tcp.local");
     
-        for (name, ip) in network_interfaces.iter() {
+        for (_name, ip) in network_interfaces.iter() {
             if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
                 match *ip {
                     IpAddr::V4(ipv4) => { 
@@ -65,7 +65,7 @@ pub async fn start_mdns_responder(){
                             RData::A(A { address: ipv4.into() }),
                         )).await;
                      },
-                    IpAddr::V6(ipv6) => { /* handle IPv6 */ }
+                    IpAddr::V6(_ipv6) => { /* handle IPv6 */ }
                 }
 
                 
@@ -166,7 +166,7 @@ impl ThalamusClient {
                             let mut nodes = nodex.lock().unwrap();
                             let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
                             match existing_index {
-                                Some(index) => {
+                                Some(_index) => {
                                 },
                                 None => {
                                     nodes.push(ThalamusNode::new(v.pid.to_string(), v.version.to_string(), ipx, 8050));
@@ -188,7 +188,7 @@ impl ThalamusClient {
         
     }
 
-    pub async fn mdns_discovery(&mut self, mut discovery: simple_mdns::async_discovery::ServiceDiscovery) -> Result<simple_mdns::async_discovery::ServiceDiscovery, mdns::Error> {
+    pub async fn mdns_discovery(&mut self, discovery: simple_mdns::async_discovery::ServiceDiscovery) -> Result<simple_mdns::async_discovery::ServiceDiscovery, mdns::Error> {
         let nodex = Arc::clone(&self.nodes);
 
         let services = discovery.get_known_services().await;
@@ -235,7 +235,7 @@ impl ThalamusClient {
     }
 
     pub async fn nodex_discovery(&mut self){
-        let mut nodell = self.nodes.lock().unwrap();
+        let nodell = self.nodes.lock().unwrap();
         let nodess = nodell.clone();
         std::mem::drop(nodell);
         for node in nodess{
@@ -292,8 +292,8 @@ impl ThalamusClient {
     }
 
     pub fn select_optimal_node(&self, node_type: String) -> Result<ThalamusNode, Box<dyn Error>> {
-        let mut nodex = self.nodes.lock().unwrap();
-        let mut nodes = nodex.clone();
+        let nodex = self.nodes.lock().unwrap();
+        let nodes = nodex.clone();
         std::mem::drop(nodex);
 
         let mut fastest_stt_score = 9999999;
@@ -579,28 +579,28 @@ impl ThalamusNodeStats {
 
         log::warn!("{}: Running STT Tiny test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.stt_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.stt_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let tiny_stt = end_timestamp - start_timestamp;
         log::warn!("{}: STT Tiny test complete in {} miliseconds", node.pid, tiny_stt);
         
         log::warn!("{}: Running STT Base test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.stt_base("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.stt_base("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let basic_stt = end_timestamp - start_timestamp;
         log::warn!("{}: STT Base test complete in {} miliseconds", node.pid, basic_stt);
         
         log::warn!("{}: Running STT Medium test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.stt_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.stt_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let medium_stt = end_timestamp - start_timestamp;
         log::warn!("{}: STT Medium test complete in {} miliseconds", node.pid, medium_stt);
 
         log::warn!("{}: Running STT Large test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.stt_large("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.stt_large("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let large_stt = end_timestamp - start_timestamp;
         log::warn!("{}: STT Large test complete in {} miliseconds", node.pid, large_stt);
@@ -610,28 +610,28 @@ impl ThalamusNodeStats {
 
         log::warn!("{}: Running VWAV Tiny test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.vwav_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.vwav_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let vwav_tiny = end_timestamp - start_timestamp;
         log::warn!("{}: VWAV Tiny test complete in {} miliseconds", node.pid, vwav_tiny);
         
         log::warn!("{}: Running VWAV Base test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.vwav_base("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.vwav_base("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let vwav_base = end_timestamp - start_timestamp;
         log::warn!("{}: VWAV Base test complete in {} miliseconds", node.pid, vwav_base);
         
         log::warn!("{}: Running VWAV Medium test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.vwav_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.vwav_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let vwav_medium = end_timestamp - start_timestamp;
         log::warn!("{}: VWAV Medium test complete in {} miliseconds", node.pid, vwav_medium);
 
         log::warn!("{}: Running VWAV Large test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.vwav_large("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.vwav_large("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let vwav_large = end_timestamp - start_timestamp;
         log::warn!("{}: VWAV Large test complete in {} miliseconds", node.pid, vwav_large);
@@ -642,28 +642,28 @@ impl ThalamusNodeStats {
         
         log::warn!("{}: Running LLAMA 7B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "7B".to_string()).unwrap();
+        let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "7B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let llama_tiny = end_timestamp - start_timestamp;
         log::warn!("{}: LLAMA 7B test complete in {} miliseconds", node.pid, llama_tiny);
 
         log::warn!("{}: Running LLAMA 13B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "13B".to_string()).unwrap();
+        let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "13B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let llama_basic = end_timestamp - start_timestamp;
         log::warn!("{}: LLAMA 13B test complete in {} miliseconds", node.pid, llama_tiny);
 
         log::warn!("{}: Running LLAMA 30B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "30B".to_string()).unwrap();
+        let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "30B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let llama_medium = end_timestamp - start_timestamp;
         log::warn!("{}: LLAMA 30B test complete in {} miliseconds", node.pid, llama_tiny);
 
         log::warn!("{}: Running LLAMA 65B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "65B".to_string()).unwrap();
+        let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "65B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let llama_large = end_timestamp - start_timestamp;
         log::warn!("{}: LLAMA 65B test complete in {} miliseconds", node.pid, llama_tiny);
@@ -673,7 +673,7 @@ impl ThalamusNodeStats {
 
         log::warn!("{}: Running SRGAN test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let stt = node.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
+        let _stt = node.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let srgan = end_timestamp - start_timestamp;
         log::warn!("{}: SRGAN test complete in {} miliseconds", node.pid, srgan);

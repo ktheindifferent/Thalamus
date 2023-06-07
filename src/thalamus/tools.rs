@@ -36,7 +36,7 @@ pub fn python3(command: String) -> String{
 }
 
 pub fn hash_check(file_path: &str) -> Result<String>{
-    let mut f = File::open(file_path)?;
+    let f = File::open(file_path)?;
 
     let x = f.metadata().unwrap().len();
     log::warn!("File size: {}", x);
@@ -44,7 +44,7 @@ pub fn hash_check(file_path: &str) -> Result<String>{
     let mut hasher = Sha256::new();
     let mut file = fs::File::open(file_path)?;
 
-    let bytes_written = io::copy(&mut file, &mut hasher)?;
+    let _bytes_written = io::copy(&mut file, &mut hasher)?;
     let hashh: String = format!("{:X}", hasher.finalize());
     log::warn!("done hasging file: {}", file_path);
     return Ok(hashh.to_string().to_lowercase());
@@ -52,7 +52,7 @@ pub fn hash_check(file_path: &str) -> Result<String>{
 
 
 pub fn get_file_size(file_path: &str) -> Result<i64>{
-    let mut f = File::open(file_path)?;
+    let f = File::open(file_path)?;
 
     let x = f.metadata()?.len();
    

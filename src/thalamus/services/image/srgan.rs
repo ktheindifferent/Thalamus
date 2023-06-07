@@ -39,7 +39,7 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
 
                 let outfile = File::open(out_file_path.as_str()).unwrap();
 
-                let mut response = Response::from_file(mime_type, outfile);
+                let response = Response::from_file(mime_type, outfile);
                 return Ok(response);
             },
             Err(e) => {

@@ -400,7 +400,7 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
 
         let outfile = File::open(output_path.as_str()).unwrap();
 
-        let mut response = Response::from_file("video/mp4", outfile);
+        let response = Response::from_file("video/mp4", outfile);
         return Ok(response);
        
                 
