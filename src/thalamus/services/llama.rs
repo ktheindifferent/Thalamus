@@ -18,7 +18,6 @@ use rouille::Request;
 use rouille::Response;
 use std::fs::File;
 use std::io::Write;
-use std::io::Read;
 use rouille::post_input;
 
 use std::path::Path;

@@ -78,9 +78,6 @@ pub async fn init_p2p_server() -> Result<(), Box<dyn Error>> {
                 }
                 
             }
-            other => {
-                log::debug!("Unhandled {:?}", other);
-            }
             SwarmEvent::Behaviour(ServerBehaviourEvent::Rendezvous(
                 rendezvous::server::Event::DiscoverServed {
                     enquirer,

@@ -45,7 +45,7 @@
 
 
 
-use std::error::Error;
+// use std::error::Error;
 use tokio::task;
 
 
@@ -54,7 +54,7 @@ use rouille::Server;
 use rouille::Response;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() {
 
     // Escelate to sudo, setup logging, etc.
     thalamus::preinit();
@@ -127,8 +127,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             i = 0;
         }
     }
-
-    Ok(())
 }
 
 

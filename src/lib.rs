@@ -33,12 +33,10 @@ const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 use std::error::Error;
 use std::{net::IpAddr};
 
-use futures_util::{stream::StreamExt};
-
 use tokio::task;
 use tokio::task::yield_now;
 
-const SERVICE_NAME: &'static str = "_thalamus._tcp.local";
+// const SERVICE_NAME: &'static str = "_thalamus._tcp.local";
 use simple_mdns::async_discovery::SimpleMdnsResponder;
 use simple_dns::{Name, CLASS, ResourceRecord, rdata::{RData, A, SRV}};
 
@@ -288,7 +286,6 @@ impl ThalamusClient {
                 return Ok(ThalamusClient::new());
             }
         }
-        return Ok(ThalamusClient::new());
     }
 
     pub fn select_optimal_node(&self, node_type: String) -> Result<ThalamusNode, Box<dyn Error>> {
