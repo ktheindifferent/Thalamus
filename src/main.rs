@@ -126,7 +126,7 @@ async fn main() {
         }
     });
 
-    let main_server = task::spawn(async {
+    std::thread::spawn(|| {
         match std::env::current_exe() {
             Ok(exe_path) => {
                 let current_exe_path = format!("{}", exe_path.display());
@@ -157,7 +157,6 @@ async fn main() {
     let _idk = tokio::join!(
         p2p_server,
         discovery_server,
-        main_server,
     );
     loop {}
 
