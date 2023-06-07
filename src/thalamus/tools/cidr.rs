@@ -1,3 +1,12 @@
+// ████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ 
+//    ██    ██   ██ ██   ██ ██      ██   ██ ████  ████ ██    ██ ██      
+//    ██    ███████ ███████ ██      ███████ ██ ████ ██ ██    ██ ███████ 
+//    ██    ██   ██ ██   ██ ██      ██   ██ ██  ██  ██ ██    ██      ██ 
+//    ██    ██   ██ ██   ██ ███████ ██   ██ ██      ██  ██████  ███████                                                                             
+// Copyright 2021-2023 The Open Sam Foundation (OSF)
+// Developed by Caleb Mitchell Smith (PixelCoda)
+// Licensed under GPLv3....see LICENSE file.
+
 // extern crate ipnet;
 use std::net::{Ipv4Addr};
 // use std::str::FromStr;

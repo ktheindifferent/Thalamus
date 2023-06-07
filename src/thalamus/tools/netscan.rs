@@ -1,3 +1,12 @@
+// ████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ 
+//    ██    ██   ██ ██   ██ ██      ██   ██ ████  ████ ██    ██ ██      
+//    ██    ███████ ███████ ██      ███████ ██ ████ ██ ██    ██ ███████ 
+//    ██    ██   ██ ██   ██ ██      ██   ██ ██  ██  ██ ██    ██      ██ 
+//    ██    ██   ██ ██   ██ ███████ ██   ██ ██      ██  ██████  ███████                                                                             
+// Copyright 2021-2023 The Open Sam Foundation (OSF)
+// Developed by Caleb Mitchell Smith (PixelCoda)
+// Licensed under GPLv3....see LICENSE file.
+
 use std::sync::mpsc::channel;
 use std::thread;
 use port_scanner::scan_port_addr;
