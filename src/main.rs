@@ -77,10 +77,20 @@ async fn main() {
     };
 
     // Install Thalamus
-    match thalamus::thalamus::setup::install(){
-        Ok(_) => log::warn!("Installed thalamus"),
-        Err(e) => log::error!("Error installing thalamus: {}", e),
+    match std::env::current_exe() {
+        Ok(exe_path) => {
+            let current_exe_path = format!("{}", exe_path.display());
+
+            if current_exe_path.as_str() != "/opt/thalamus/bin/thalamus"{
+                match thalamus::thalamus::setup::install(){
+                    Ok(_) => log::warn!("Installed thalamus"),
+                    Err(e) => log::error!("Error installing thalamus: {}", e),
+                };
+            }
+        },
+        Err(e) => log::error!("Error getting current executable path: {}", e),
     };
+
 
     // Setup Thalamus Client
     let mut thalamus = thalamus::ThalamusClient::load().unwrap();

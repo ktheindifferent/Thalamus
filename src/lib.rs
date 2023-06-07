@@ -477,20 +477,22 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn test_llama_7b(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
-        return self.test_llama("7B".to_string());
-    }
+    pub fn test_srgan(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
+        log::info!("{}: Running SRGAN test...", self.pid);
+        let (sender, receiver) = mpsc::channel();
+        let node_c = self.clone();
+        let t = thread::spawn(move || {
+            let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let _stt = node_c.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
+            let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let time_elapsed = Some(end_timestamp - start_timestamp);
 
-    pub fn test_llama_13b(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
-        return self.test_llama("13B".to_string());
-    }
-
-    pub fn test_llama_30b(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
-        return self.test_llama("30B".to_string());
-    }
-
-    pub fn test_llama_65b(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
-        return self.test_llama("65B".to_string());
+            match sender.send(time_elapsed) {
+                Ok(()) => {}, // everything good
+                Err(_) => {}, // we have been released, don't panic
+            }
+        });
+        return receiver.recv_timeout(std::time::Duration::from_millis(60000));
     }
 
     pub fn test_llama(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
@@ -498,10 +500,68 @@ impl ThalamusNode {
         let (sender, receiver) = mpsc::channel();
         let node_c = self.clone();
         let t = thread::spawn(move || {
-
-        
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             let _llama = node_c.llama("Tell me about Abraham Lincoln.".to_string(), model.to_string()).unwrap();
+            let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let time_elapsed = Some(end_timestamp - start_timestamp);
+
+            match sender.send(time_elapsed) {
+                Ok(()) => {}, // everything good
+                Err(_) => {}, // we have been released, don't panic
+            }
+        });
+        return receiver.recv_timeout(std::time::Duration::from_millis(60000));
+    }
+
+    pub fn test_whisper_stt(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
+        log::info!("{}: Running LLAMA {} test...", self.pid, model);
+        let (sender, receiver) = mpsc::channel();
+        let node_c = self.clone();
+        let t = thread::spawn(move || {
+            let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            if model == "tiny".to_string() {
+                let _stt = node_c.whisper_stt_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
+            }
+            if model == "base".to_string() {
+                let _stt = node_c.whisper_stt_base("/opt/thalamusc/test.wav".to_string()).unwrap();
+            }
+            if model == "medium".to_string() {
+                let _stt = node_c.whisper_stt_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
+            }
+            if model == "large".to_string() {
+                let _stt = node_c.whisper_stt_large("/opt/thalamusc/test.wav".to_string()).unwrap();
+            } 
+           
+            let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let time_elapsed = Some(end_timestamp - start_timestamp);
+
+            match sender.send(time_elapsed) {
+                Ok(()) => {}, // everything good
+                Err(_) => {}, // we have been released, don't panic
+            }
+        });
+        return receiver.recv_timeout(std::time::Duration::from_millis(60000));
+    }
+
+    pub fn test_whisper_vwav(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
+        log::info!("{}: Running LLAMA {} test...", self.pid, model);
+        let (sender, receiver) = mpsc::channel();
+        let node_c = self.clone();
+        let t = thread::spawn(move || {
+            let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            if model == "tiny".to_string() {
+                let _stt = node_c.whisper_vwav_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
+            }
+            if model == "base".to_string() {
+                let _stt = node_c.whisper_vwav_base("/opt/thalamusc/test.wav".to_string()).unwrap();
+            }
+            if model == "medium".to_string() {
+                let _stt = node_c.whisper_vwav_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
+            }
+            if model == "large".to_string() {
+                let _stt = node_c.whisper_vwav_large("/opt/thalamusc/test.wav".to_string()).unwrap();
+            } 
+           
             let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             let time_elapsed = Some(end_timestamp - start_timestamp);
 
@@ -591,72 +651,112 @@ impl ThalamusNodeStats {
     pub fn calculate(node: ThalamusNode) -> ThalamusNodeStats {
 
         log::info!("Calculating stats for node {}.....", node.pid);
-
+        
         // Test STT Tiny
-        log::info!("{}: Running STT Tiny test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.whisper_stt_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let tiny_stt = Some(end_timestamp - start_timestamp);
-        log::info!("{}: STT Tiny test complete in {:?} miliseconds", node.pid, tiny_stt);
-        
+        let mut whisper_stt_tiny: Option<i64> = None;
+        let whisper_stt_tiny_test = node.test_whisper_stt("tiny".to_string());
+        match whisper_stt_tiny_test {
+            Ok(time_elapsed) => {
+                whisper_stt_tiny = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running STT Tiny test: {:?}", node.pid, e);
+            }
+        }
+        log::info!("{}: STT Tiny test complete in {:?} miliseconds", node.pid, whisper_stt_tiny);
+
         // Test STT Base
-        log::info!("{}: Running STT Base test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.whisper_stt_base("/opt/thalamusc/test.wav".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let basic_stt = Some(end_timestamp - start_timestamp);
-        log::info!("{}: STT Base test complete in {:?} miliseconds", node.pid, basic_stt);
-        
+        let mut whisper_stt_base: Option<i64> = None;
+        let whisper_stt_base_test = node.test_whisper_stt("base".to_string());
+        match whisper_stt_base_test {
+            Ok(time_elapsed) => {
+                whisper_stt_base = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running STT Base test: {:?}", node.pid, e);
+            }
+        }
+        log::info!("{}: STT Base test complete in {:?} miliseconds", node.pid, whisper_stt_base);
+
         // Test STT Medium
-        log::info!("{}: Running STT Medium test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.whisper_stt_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let medium_stt = Some(end_timestamp - start_timestamp);
-        log::info!("{}: STT Medium test complete in {:?} miliseconds", node.pid, medium_stt);
+        let mut whisper_stt_medium: Option<i64> = None;
+        let whisper_stt_medium_test = node.test_whisper_stt("medium".to_string());
+        match whisper_stt_medium_test {
+            Ok(time_elapsed) => {
+                whisper_stt_medium = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running STT Medium test: {:?}", node.pid, e);
+            }
+        }
+        log::info!("{}: STT Medium test complete in {:?} miliseconds", node.pid, whisper_stt_medium);
 
         // Test STT Large
-        log::info!("{}: Running STT Large test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.whisper_stt_large("/opt/thalamusc/test.wav".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let large_stt = Some(end_timestamp - start_timestamp);
-        log::info!("{}: STT Large test complete in {:?} miliseconds", node.pid, large_stt);
+        let mut whisper_stt_large: Option<i64> = None;
+        let whisper_stt_large_test = node.test_whisper_stt("large".to_string());
+        match whisper_stt_large_test {
+            Ok(time_elapsed) => {
+                whisper_stt_large = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running STT Large test: {:?}", node.pid, e);
+            }
+        }
+        log::info!("{}: STT Large test complete in {:?} miliseconds", node.pid, whisper_stt_large);
         
         // Calculate average STT score
-        // let whisper_stt_score = (tiny_stt + basic_stt + medium_stt + large_stt) / 4;
+        // let whisper_stt_score = (whisper_stt_tiny + basic_stt + whisper_stt_medium + whisper_stt_large) / 4;
 
         // Test VWAV Tiny
-        log::info!("{}: Running VWAV Tiny test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.whisper_vwav_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let whisper_vwav_tiny = Some(end_timestamp - start_timestamp);
+        let mut whisper_vwav_tiny: Option<i64> = None;
+        let whisper_vwav_tiny_test = node.test_whisper_vwav("tiny".to_string());
+        match whisper_vwav_tiny_test {
+            Ok(time_elapsed) => {
+                whisper_vwav_tiny = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running VWAV Tiny test: {:?}", node.pid, e);
+            }
+        }
         log::info!("{}: VWAV Tiny test complete in {:?} miliseconds", node.pid, whisper_vwav_tiny);
-        
+
         // Test VWAV Base
-        log::info!("{}: Running VWAV Base test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.whisper_vwav_base("/opt/thalamusc/test.wav".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let whisper_vwav_base = Some(end_timestamp - start_timestamp);
+        let mut whisper_vwav_base: Option<i64> = None;
+        let whisper_vwav_base_test = node.test_whisper_vwav("base".to_string());
+        match whisper_vwav_base_test {
+            Ok(time_elapsed) => {
+                whisper_vwav_base = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running VWAV Base test: {:?}", node.pid, e);
+            }
+        }
         log::info!("{}: VWAV Base test complete in {:?} miliseconds", node.pid, whisper_vwav_base);
-        
+
         // Test VWAV Medium
-        log::info!("{}: Running VWAV Medium test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.whisper_vwav_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let whisper_vwav_medium = Some(end_timestamp - start_timestamp);
+        let mut whisper_vwav_medium: Option<i64> = None;
+        let whisper_vwav_medium_test = node.test_whisper_vwav("medium".to_string());
+        match whisper_vwav_medium_test {
+            Ok(time_elapsed) => {
+                whisper_vwav_medium = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running VWAV Medium test: {:?}", node.pid, e);
+            }
+        }
         log::info!("{}: VWAV Medium test complete in {:?} miliseconds", node.pid, whisper_vwav_medium);
 
         // Test VWAV Large
-        log::info!("{}: Running VWAV Large test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.whisper_vwav_large("/opt/thalamusc/test.wav".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let whisper_vwav_large = Some(end_timestamp - start_timestamp);
+        let mut whisper_vwav_large: Option<i64> = None;
+        let whisper_vwav_large_test = node.test_whisper_vwav("large".to_string());
+        match whisper_vwav_large_test {
+            Ok(time_elapsed) => {
+                whisper_vwav_large = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running VWAV Large test: {:?}", node.pid, e);
+            }
+        }
         log::info!("{}: VWAV Large test complete in {:?} miliseconds", node.pid, whisper_vwav_large);
 
         // Calculate average VWAV score
@@ -664,7 +764,7 @@ impl ThalamusNodeStats {
 
         // Test LLAMA 7B
         let mut llama_7b: Option<i64> = None;
-        let llama_7b_test = node.test_llama_7b();
+        let llama_7b_test = node.test_llama("7B".to_string());
         match llama_7b_test {
             Ok(time_elapsed) => {
                 llama_7b = time_elapsed;
@@ -677,7 +777,7 @@ impl ThalamusNodeStats {
 
         // Test LLAMA 13B
         let mut llama_13b: Option<i64> = None;
-        let llama_13b_test = node.test_llama_13b();
+        let llama_13b_test = node.test_llama("13B".to_string());
         match llama_13b_test {
             Ok(time_elapsed) => {
                 llama_13b = time_elapsed;
@@ -690,7 +790,7 @@ impl ThalamusNodeStats {
 
         // Test LLAMA 30B
         let mut llama_30b: Option<i64> = None;
-        let llama_30b_test = node.test_llama_30b();
+        let llama_30b_test = node.test_llama("30B".to_string());
         match llama_30b_test {
             Ok(time_elapsed) => {
                 llama_30b = time_elapsed;
@@ -703,7 +803,7 @@ impl ThalamusNodeStats {
 
         // Test LLAMA 65B
         let mut llama_65b: Option<i64> = None;
-        let llama_65b_test = node.test_llama_65b();
+        let llama_65b_test = node.test_llama("65B".to_string());
         match llama_65b_test {
             Ok(time_elapsed) => {
                 llama_65b = time_elapsed;
@@ -747,19 +847,24 @@ impl ThalamusNodeStats {
         }
 
         // Test SRGAN
-        log::info!("{}: Running SRGAN test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let srgan = Some(end_timestamp - start_timestamp);
-        log::warn!("{}: SRGAN test complete in {:?} miliseconds", node.pid, srgan);
+        let mut srgan: Option<i64> = None;
+        let srgan_test = node.test_srgan();
+        match srgan_test {
+            Ok(time_elapsed) => {
+                srgan = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running SRGAN test: {:?}", node.pid, e);
+            }
+        }
+        log::info!("{}: SRGAN test complete in {:?} miliseconds", node.pid, whisper_vwav_tiny);
 
         // Return stats
         return ThalamusNodeStats { 
-            whisper_stt_tiny: tiny_stt,
-            whisper_stt_base: basic_stt,
-            whisper_stt_medium: medium_stt,
-            whisper_stt_large: large_stt,
+            whisper_stt_tiny: whisper_stt_tiny,
+            whisper_stt_base: whisper_stt_base,
+            whisper_stt_medium: whisper_stt_medium,
+            whisper_stt_large: whisper_stt_large,
             whisper_stt_score: None,
             llama_7b: llama_7b,
             llama_13b: llama_13b,
