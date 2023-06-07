@@ -476,6 +476,46 @@ impl ThalamusNode {
         return Ok(client.get(url)
         .send()?.json()?);
     }
+
+    pub fn test_llama_7b(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
+        log::info!("{}: Running LLAMA 7B test...", self.pid);
+        let (sender, receiver) = mpsc::channel();
+        let node_c = self.clone();
+        let t = thread::spawn(move || {
+
+        
+            let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let _llama = node_c.llama("Tell me about Abraham Lincoln.".to_string(), "7B".to_string()).unwrap();
+            let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let time_elapsed = Some(end_timestamp - start_timestamp);
+
+            match sender.send(time_elapsed) {
+                Ok(()) => {}, // everything good
+                Err(_) => {}, // we have been released, don't panic
+            }
+        });
+        return receiver.recv_timeout(std::time::Duration::from_millis(60000));
+    }
+
+    pub fn test_llama_13b(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
+        log::info!("{}: Running LLAMA 13B test...", self.pid);
+        let (sender, receiver) = mpsc::channel();
+        let node_c = self.clone();
+        let t = thread::spawn(move || {
+
+        
+            let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let _llama = node_c.llama("Tell me about Abraham Lincoln.".to_string(), "13B".to_string()).unwrap();
+            let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let time_elapsed = Some(end_timestamp - start_timestamp);
+
+            match sender.send(time_elapsed) {
+                Ok(()) => {}, // everything good
+                Err(_) => {}, // we have been released, don't panic
+            }
+        });
+        return receiver.recv_timeout(std::time::Duration::from_millis(60000));
+    }
 }
 
 /// Struct for storing the jobs of each node
@@ -627,35 +667,30 @@ impl ThalamusNodeStats {
         // let whisper_vwav_score = (whisper_vwav_tiny + whisper_vwav_base + whisper_vwav_medium + whisper_vwav_large) / 4;
 
         // Test LLAMA 7B
-        log::info!("{}: Running LLAMA 7B test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "7B".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama_7b = Some(end_timestamp - start_timestamp);
+        let mut llama_7b: Option<i64> = None;
+        let llama_7b_test = node.test_llama_7b();
+        match llama_7b_test {
+            Ok(time_elapsed) => {
+                llama_7b = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running Llama 7B test: {:?}", node.pid, e);
+            }
+        }
         log::info!("{}: LLAMA 7B test complete in {:?} miliseconds", node.pid, llama_7b);
 
         // Test LLAMA 13B
-        log::info!("{}: Running LLAMA 13B test...", node.pid);
-        let (sender, receiver) = mpsc::channel();
-        let node_c = node.clone();
-        let t = thread::spawn(move || {
-
-        
-            let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-            let _llama = node_c.llama("Tell me about Abraham Lincoln.".to_string(), "13B".to_string()).unwrap();
-            let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-            let llama_13b = Some(end_timestamp - start_timestamp);
-
-            match sender.send(llama_13b) {
-                Ok(()) => {}, // everything good
-                Err(_) => {}, // we have been released, don't panic
+        let mut llama_13b: Option<i64> = None;
+        let llama_13b_test = node.test_llama_13b();
+        match llama_13b_test {
+            Ok(time_elapsed) => {
+                llama_13b = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running Llama 13B test: {:?}", node.pid, e);
             }
-        });
-        log::info!("{:?}", receiver.recv_timeout(std::time::Duration::from_millis(5000)));
-        log::info!("{}: LLAMA 13B test complete in {} miliseconds", node.pid, 0);
-
-
-
+        }
+        log::info!("{}: LLAMA 13B test complete in {:?} miliseconds", node.pid, llama_13b);
 
         // Test LLAMA 30B
         log::info!("{}: Running LLAMA 30B test...", node.pid);
