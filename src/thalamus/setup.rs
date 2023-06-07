@@ -63,6 +63,16 @@ pub fn install() -> Result<()> {
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory").into()),
     }
 
+    match crate::thalamus::tools::mkdir("/opt/thalamus/models/llama/30B"){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory").into()),
+    }
+
+    match crate::thalamus::tools::mkdir("/opt/thalamus/models/llama/65B"){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/llama directory").into()),
+    }
+
     match crate::thalamus::tools::mkdir("/opt/thalamus/models/ocnn"){
         Ok(_) => {},
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/ocnn directory").into()),

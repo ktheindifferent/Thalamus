@@ -97,9 +97,41 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     }
 
 
-    // TODO: Download quantized 13B llama model from Open Sam Foundation (OSF)
+    // Download quantized 13B llama model from Open Sam Foundation (OSF)
     // https://www.dropbox.com/s/3gt8kzyw9kxc79q/ggml-model-q4_0.bin
+    if !Path::new("/opt/thalamus/models/llama/13B/ggml-model-q4_0.bin").exists(){
+        log::warn!("ggml-base.bin is missing.....downloading it from https://www.dropbox.com/s/3gt8kzyw9kxc79q/ggml-model-q4_0.bin");
+        match crate::thalamus::tools::download("/opt/thalamus/models/llama/13B/ggml-model-q4_0.bin", "https://www.dropbox.com/s/3gt8kzyw9kxc79q/ggml-model-q4_0.bin"){
+            Ok(_) => {
+                log::info!("Stored model in /opt/thalamus/models/");
+            },
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
+        }
+    }
 
+    // Download quantized 30B llama model from Open Sam Foundation (OSF)
+    // https://www.dropbox.com/s/3jpddk0uoghr0eo/ggml-model-q4_0.bin
+    if !Path::new("/opt/thalamus/models/llama/30B/ggml-model-q4_0.bin").exists(){
+        log::warn!("ggml-base.bin is missing.....downloading it from https://www.dropbox.com/s/3jpddk0uoghr0eo/ggml-model-q4_0.bin");
+        match crate::thalamus::tools::download("/opt/thalamus/models/llama/30B/ggml-model-q4_0.bin", "https://www.dropbox.com/s/3jpddk0uoghr0eo/ggml-model-q4_0.bin"){
+            Ok(_) => {
+                log::info!("Stored model in /opt/thalamus/models/");
+            },
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
+        }
+    }
+
+    // Download quantized 65B llama model from Open Sam Foundation (OSF)
+    // https://www.dropbox.com/s/ucstzvb0bzlxcyc/ggml-model-q4_0.bin
+    if !Path::new("/opt/thalamus/models/llama/65B/ggml-model-q4_0.bin").exists(){
+        log::warn!("ggml-base.bin is missing.....downloading it from https://www.dropbox.com/s/ucstzvb0bzlxcyc/ggml-model-q4_0.bin");
+        match crate::thalamus::tools::download("/opt/thalamus/models/llama/65B/ggml-model-q4_0.bin", "https://www.dropbox.com/s/ucstzvb0bzlxcyc/ggml-model-q4_0.bin"){
+            Ok(_) => {
+                log::info!("Stored model in /opt/thalamus/models/");
+            },
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
+        }
+    }
 
 
     Ok(())

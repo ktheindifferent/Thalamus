@@ -488,8 +488,8 @@ impl ThalamusNode {
         return Ok(bytes.to_vec());
     }
 
-    pub fn llama(&self, prompt: String) -> Result<String, Box<dyn Error>>{
-        let params = [("model", "7B"), ("prompt", prompt.as_str())];
+    pub fn llama(&self, prompt: String, model: String) -> Result<String, Box<dyn Error>>{
+        let params = [("model", model.as_str()), ("prompt", prompt.as_str())];
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -642,10 +642,33 @@ impl ThalamusNodeStats {
         
         log::warn!("{}: Running LLAMA 7B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama = node.llama("Tell me about Abraham Lincoln.".to_string()).unwrap();
+        let llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "7B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let llama_tiny = end_timestamp - start_timestamp;
         log::warn!("{}: LLAMA 7B test complete in {} miliseconds", node.pid, llama_tiny);
+
+        log::warn!("{}: Running LLAMA 13B test...", node.pid);
+        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "13B".to_string()).unwrap();
+        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let llama_basic = end_timestamp - start_timestamp;
+        log::warn!("{}: LLAMA 13B test complete in {} miliseconds", node.pid, llama_tiny);
+
+        log::warn!("{}: Running LLAMA 30B test...", node.pid);
+        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "30B".to_string()).unwrap();
+        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let llama_medium = end_timestamp - start_timestamp;
+        log::warn!("{}: LLAMA 30B test complete in {} miliseconds", node.pid, llama_tiny);
+
+        log::warn!("{}: Running LLAMA 65B test...", node.pid);
+        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "65B".to_string()).unwrap();
+        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+        let llama_large = end_timestamp - start_timestamp;
+        log::warn!("{}: LLAMA 65B test complete in {} miliseconds", node.pid, llama_tiny);
+
+        let llama_score = (llama_tiny + llama_basic + llama_medium + llama_large) / 4;
 
 
         log::warn!("{}: Running SRGAN test...", node.pid);
@@ -670,10 +693,10 @@ impl ThalamusNodeStats {
             stt_large: large_stt,
             stt_score: stt_score,
             llama_tiny: llama_tiny,
-            llama_basic: 0,
-            llama_medium: 0,
-            llama_large: 0,
-            llama_score: 0,
+            llama_basic: llama_basic,
+            llama_medium: llama_medium,
+            llama_large: llama_large,
+            llama_score: llama_score,
             vwav_tiny: vwav_tiny,
             vwav_base: vwav_base,
             vwav_medium: vwav_medium,
