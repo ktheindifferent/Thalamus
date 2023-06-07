@@ -578,6 +578,32 @@ pub fn llama(model: &str, prompt: &str) -> Result<String>{
 // }
 
 
+// fn scan_port(host: &str, port: u16) -> bool {
+//     let host = host.to_string();
+//     let port = port;
+//     let (sender, receiver) = mpsc::channel();
+//     let t = thread::spawn(move || {
+//         match sender.send(net::TcpStream::connect((host.as_str(), port))) {
+//             Ok(()) => {}, // everything good
+//             Err(_) => {}, // we have been released, don't panic
+//         }
+//     });
+
+//     thread::sleep(std::time::Duration::new(5, 0));
+
+//     match receiver.try_recv() {
+//         Ok(Ok(handle)) => true, // we have a connection
+//         Ok(Err(_)) => false, // connecting failed
+//         Err(mpsc::TryRecvError::Empty) => {
+//             drop(receiver);
+//             drop(t);
+//             // connecting took more than 5 seconds
+//             false
+//         },
+//         Err(mpsc::TryRecvError::Disconnected) => unreachable!(),
+//     }
+// }
+
 pub fn find_mimetype(filename: &String) -> String{
     let parts : Vec<&str> = filename.split('.').collect();
     let res = match parts.last() {

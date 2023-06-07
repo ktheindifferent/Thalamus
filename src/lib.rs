@@ -19,6 +19,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use std::{net::IpAddr};
 use tokio::task::yield_now;
 use tokio::task;
+use std::thread;
+use std::sync::mpsc;
 
 extern crate rouille;
 
@@ -250,38 +252,38 @@ impl ThalamusClient {
         }
     }
 
-    pub fn select_optimal_node(&self, node_type: String) -> Result<ThalamusNode, Box<dyn Error + '_>> {
-        let nodex = self.nodes.lock()?;
-        let nodes = nodex.clone();
-        std::mem::drop(nodex);
+    // pub fn select_optimal_node(&self, node_type: String) -> Result<ThalamusNode, Box<dyn Error + '_>> {
+    //     let nodex = self.nodes.lock()?;
+    //     let nodes = nodex.clone();
+    //     std::mem::drop(nodex);
 
-        let mut fastest_stt_score = 9999999;
-        let mut fastest_vwav_score = 9999999;
-        let mut fastest_srgan_score = 9999999;
-        let mut fastest_llama_score = 9999999;
-        let mut selected_node = nodes[0].clone();
-        for node in nodes {
-            let stats = node.stats.clone();
-            if stats.stt_score < fastest_stt_score && node_type.contains("stt") {
-                fastest_stt_score = stats.stt_score;
-                selected_node = node.clone();
-            }
-            if stats.vwav_score < fastest_vwav_score && node_type.contains("vwav") {
-                fastest_vwav_score = stats.vwav_score;
-                selected_node = node.clone();
-            }
-            if stats.srgan < fastest_srgan_score && node_type.contains("srgan") {
-                fastest_srgan_score = stats.srgan;
-                selected_node = node.clone();
-            }
-            if stats.llama_score < fastest_llama_score && node_type.contains("llama") {
-                fastest_llama_score = stats.llama_score;
-                selected_node = node.clone();
-            }
-        }
+    //     let mut fastest_whisper_stt_score = 9999999;
+    //     let mut fastest_whisper_vwav_score = 9999999;
+    //     let mut fastest_srgan_score = 9999999;
+    //     let mut fastest_llama_score = 9999999;
+    //     let mut selected_node = nodes[0].clone();
+    //     for node in nodes {
+    //         let stats = node.stats.clone();
+    //         if stats.whisper_stt_score < Some(fastest_whisper_stt_score) && node_type.contains("stt") {
+    //             fastest_whisper_stt_score = stats.whisper_stt_score;
+    //             selected_node = node.clone();
+    //         }
+    //         if stats.whisper_vwav_score < fastest_whisper_vwav_score && node_type.contains("vwav") {
+    //             fastest_whisper_vwav_score = stats.whisper_vwav_score;
+    //             selected_node = node.clone();
+    //         }
+    //         if stats.srgan < fastest_srgan_score && node_type.contains("srgan") {
+    //             fastest_srgan_score = stats.srgan;
+    //             selected_node = node.clone();
+    //         }
+    //         if stats.llama_score < fastest_llama_score && node_type.contains("llama") {
+    //             fastest_llama_score = stats.llama_score;
+    //             selected_node = node.clone();
+    //         }
+    //     }
         
-        return Ok(selected_node);
-    }
+    //     return Ok(selected_node);
+    // }
 }
 
 
@@ -330,7 +332,7 @@ impl ThalamusNode {
         return node;
     }
 
-    pub fn stt_tiny(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
+    pub fn whisper_stt_tiny(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "tiny").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -340,7 +342,7 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn stt_base(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
+    pub fn whisper_stt_base(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "basic").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -350,7 +352,7 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn stt_medium(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
+    pub fn whisper_stt_medium(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "medium").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -360,7 +362,7 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn stt_large(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
+    pub fn whisper_stt_large(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "large").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -370,7 +372,7 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn vwav_tiny(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+    pub fn whisper_vwav_tiny(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "tiny").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -382,7 +384,7 @@ impl ThalamusNode {
         return Ok(bytes.to_vec());
     }
 
-    pub fn vwav_base(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+    pub fn whisper_vwav_base(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "base").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -394,7 +396,7 @@ impl ThalamusNode {
         return Ok(bytes.to_vec());
     }
 
-    pub fn vwav_medium(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+    pub fn whisper_vwav_medium(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "medium").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -406,7 +408,7 @@ impl ThalamusNode {
         return Ok(bytes.to_vec());
     }
 
-    pub fn vwav_large(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+    pub fn whisper_vwav_large(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "large").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
@@ -497,56 +499,56 @@ impl ThalamusNodeJob {
 /// Struct for storing the stats of each node
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThalamusNodeStats {
-    pub stt_tiny: i64,
-    pub stt_base: i64,
-    pub stt_medium: i64,
-    pub stt_large: i64,
-    pub stt_score: i64,
-    pub llama_tiny: i64,
-    pub llama_basic: i64,
-    pub llama_medium: i64,
-    pub llama_large: i64,
-    pub llama_score: i64,
-    pub vwav_tiny: i64,
-    pub vwav_base: i64,
-    pub vwav_medium: i64,
-    pub vwav_large: i64,
-    pub vwav_score: i64,
-    pub srgan: i64,
-    pub espeak_tts: i64,
-    pub apple_tts: i64,
-    pub google_tts: i64,
-    pub watson_tts: i64,
-    pub deepspeech_tts: i64,
-    pub tts_score: i64,
-    pub nst_score: i64,
+    pub apple_tts: Option<i64>,
+    pub bark_tts: Option<i64>,
+    pub deepspeech_tts: Option<i64>,
+    pub espeak_tts: Option<i64>,
+    pub watson_tts: Option<i64>,
+    pub tts_score: Option<i64>,
+    pub llama_7b: Option<i64>,
+    pub llama_13b: Option<i64>,
+    pub llama_30b: Option<i64>,
+    pub llama_65b: Option<i64>,
+    pub llama_score: Option<i64>,
+    pub nst_score: Option<i64>,
+    pub srgan_score: Option<i64>,
+    pub whisper_stt_tiny: Option<i64>,
+    pub whisper_stt_base: Option<i64>,
+    pub whisper_stt_medium: Option<i64>,
+    pub whisper_stt_large: Option<i64>,
+    pub whisper_stt_score: Option<i64>,
+    pub whisper_vwav_tiny: Option<i64>,
+    pub whisper_vwav_base: Option<i64>,
+    pub whisper_vwav_medium: Option<i64>,
+    pub whisper_vwav_large: Option<i64>,
+    pub whisper_vwav_score: Option<i64>,
 }
 impl ThalamusNodeStats {
     pub fn new() -> ThalamusNodeStats {
         ThalamusNodeStats { 
-            stt_tiny: 0,
-            stt_base: 0,
-            stt_medium: 0,
-            stt_large: 0,
-            stt_score: 0,
-            llama_tiny: 0,
-            llama_basic: 0,
-            llama_medium: 0,
-            llama_large: 0,
-            llama_score: 0,
-            vwav_tiny: 0,
-            vwav_base: 0,
-            vwav_medium: 0,
-            vwav_large: 0,
-            vwav_score: 0, 
-            srgan: 0,
-            espeak_tts: 0,
-            apple_tts: 0,
-            google_tts: 0,
-            watson_tts: 0,
-            deepspeech_tts: 0,
-            tts_score: 0,
-            nst_score: 0
+            whisper_stt_tiny: None,
+            whisper_stt_base: None,
+            whisper_stt_medium: None,
+            whisper_stt_large: None,
+            whisper_stt_score: None,
+            llama_7b: None,
+            llama_13b: None,
+            llama_30b: None,
+            llama_65b: None,
+            llama_score: None,
+            whisper_vwav_tiny: None,
+            whisper_vwav_base: None,
+            whisper_vwav_medium: None,
+            whisper_vwav_large: None,
+            whisper_vwav_score: None, 
+            srgan_score: None,
+            espeak_tts: None,
+            apple_tts: None,
+            bark_tts: None,
+            watson_tts: None,
+            deepspeech_tts: None,
+            tts_score: None,
+            nst_score: None
         }
     }
 
@@ -557,141 +559,156 @@ impl ThalamusNodeStats {
         // Test STT Tiny
         log::info!("{}: Running STT Tiny test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.stt_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.whisper_stt_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let tiny_stt = end_timestamp - start_timestamp;
-        log::info!("{}: STT Tiny test complete in {} miliseconds", node.pid, tiny_stt);
+        let tiny_stt = Some(end_timestamp - start_timestamp);
+        log::info!("{}: STT Tiny test complete in {:?} miliseconds", node.pid, tiny_stt);
         
         // Test STT Base
         log::info!("{}: Running STT Base test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.stt_base("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.whisper_stt_base("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let basic_stt = end_timestamp - start_timestamp;
-        log::info!("{}: STT Base test complete in {} miliseconds", node.pid, basic_stt);
+        let basic_stt = Some(end_timestamp - start_timestamp);
+        log::info!("{}: STT Base test complete in {:?} miliseconds", node.pid, basic_stt);
         
         // Test STT Medium
         log::info!("{}: Running STT Medium test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.stt_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.whisper_stt_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let medium_stt = end_timestamp - start_timestamp;
-        log::info!("{}: STT Medium test complete in {} miliseconds", node.pid, medium_stt);
+        let medium_stt = Some(end_timestamp - start_timestamp);
+        log::info!("{}: STT Medium test complete in {:?} miliseconds", node.pid, medium_stt);
 
         // Test STT Large
         log::info!("{}: Running STT Large test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.stt_large("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.whisper_stt_large("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let large_stt = end_timestamp - start_timestamp;
-        log::info!("{}: STT Large test complete in {} miliseconds", node.pid, large_stt);
+        let large_stt = Some(end_timestamp - start_timestamp);
+        log::info!("{}: STT Large test complete in {:?} miliseconds", node.pid, large_stt);
         
         // Calculate average STT score
-        let stt_score = (tiny_stt + basic_stt + medium_stt + large_stt) / 4;
+        // let whisper_stt_score = (tiny_stt + basic_stt + medium_stt + large_stt) / 4;
 
         // Test VWAV Tiny
         log::info!("{}: Running VWAV Tiny test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.vwav_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.whisper_vwav_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let vwav_tiny = end_timestamp - start_timestamp;
-        log::info!("{}: VWAV Tiny test complete in {} miliseconds", node.pid, vwav_tiny);
+        let whisper_vwav_tiny = Some(end_timestamp - start_timestamp);
+        log::info!("{}: VWAV Tiny test complete in {:?} miliseconds", node.pid, whisper_vwav_tiny);
         
         // Test VWAV Base
         log::info!("{}: Running VWAV Base test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.vwav_base("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.whisper_vwav_base("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let vwav_base = end_timestamp - start_timestamp;
-        log::info!("{}: VWAV Base test complete in {} miliseconds", node.pid, vwav_base);
+        let whisper_vwav_base = Some(end_timestamp - start_timestamp);
+        log::info!("{}: VWAV Base test complete in {:?} miliseconds", node.pid, whisper_vwav_base);
         
         // Test VWAV Medium
         log::info!("{}: Running VWAV Medium test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.vwav_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.whisper_vwav_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let vwav_medium = end_timestamp - start_timestamp;
-        log::info!("{}: VWAV Medium test complete in {} miliseconds", node.pid, vwav_medium);
+        let whisper_vwav_medium = Some(end_timestamp - start_timestamp);
+        log::info!("{}: VWAV Medium test complete in {:?} miliseconds", node.pid, whisper_vwav_medium);
 
         // Test VWAV Large
         log::info!("{}: Running VWAV Large test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _stt = node.vwav_large("/opt/thalamusc/test.wav".to_string()).unwrap();
+        let _stt = node.whisper_vwav_large("/opt/thalamusc/test.wav".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let vwav_large = end_timestamp - start_timestamp;
-        log::info!("{}: VWAV Large test complete in {} miliseconds", node.pid, vwav_large);
+        let whisper_vwav_large = Some(end_timestamp - start_timestamp);
+        log::info!("{}: VWAV Large test complete in {:?} miliseconds", node.pid, whisper_vwav_large);
 
         // Calculate average VWAV score
-        let vwav_score = (vwav_tiny + vwav_base + vwav_medium + vwav_large) / 4;
+        // let whisper_vwav_score = (whisper_vwav_tiny + whisper_vwav_base + whisper_vwav_medium + whisper_vwav_large) / 4;
 
         // Test LLAMA 7B
         log::info!("{}: Running LLAMA 7B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "7B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama_tiny = end_timestamp - start_timestamp;
-        log::info!("{}: LLAMA 7B test complete in {} miliseconds", node.pid, llama_tiny);
+        let llama_7b = Some(end_timestamp - start_timestamp);
+        log::info!("{}: LLAMA 7B test complete in {:?} miliseconds", node.pid, llama_7b);
 
         // Test LLAMA 13B
         log::info!("{}: Running LLAMA 13B test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "13B".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama_basic = end_timestamp - start_timestamp;
-        log::info!("{}: LLAMA 13B test complete in {} miliseconds", node.pid, llama_tiny);
+        let (sender, receiver) = mpsc::channel();
+        let node_c = node.clone();
+        let t = thread::spawn(move || {
+
+        
+            let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let _llama = node_c.llama("Tell me about Abraham Lincoln.".to_string(), "13B".to_string()).unwrap();
+            let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let llama_13b = Some(end_timestamp - start_timestamp);
+
+            match sender.send(llama_13b) {
+                Ok(()) => {}, // everything good
+                Err(_) => {}, // we have been released, don't panic
+            }
+        });
+        log::info!("{:?}", receiver.recv_timeout(std::time::Duration::from_millis(5000)));
+        log::info!("{}: LLAMA 13B test complete in {} miliseconds", node.pid, 0);
+
+
+
 
         // Test LLAMA 30B
         log::info!("{}: Running LLAMA 30B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "30B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama_medium = end_timestamp - start_timestamp;
-        log::info!("{}: LLAMA 30B test complete in {} miliseconds", node.pid, llama_tiny);
+        let llama_30b = Some(end_timestamp - start_timestamp);
+        log::info!("{}: LLAMA 30B test complete in {:?} miliseconds", node.pid, llama_7b);
 
         // Test LLAMA 65B
         log::info!("{}: Running LLAMA 65B test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "65B".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama_large = end_timestamp - start_timestamp;
-        log::info!("{}: LLAMA 65B test complete in {} miliseconds", node.pid, llama_tiny);
+        let llama_65b = Some(end_timestamp - start_timestamp);
+        log::info!("{}: LLAMA 65B test complete in {:?} miliseconds", node.pid, llama_7b);
 
         // Calculate average llama score
-        let llama_score = (llama_tiny + llama_basic + llama_medium + llama_large) / 4;
+        // let llama_score = (llama_7b + 0 + llama_30b + llama_65b) / 4;
 
         // Test SRGAN
         log::info!("{}: Running SRGAN test...", node.pid);
         let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
         let _stt = node.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
         let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let srgan = end_timestamp - start_timestamp;
-        log::warn!("{}: SRGAN test complete in {} miliseconds", node.pid, srgan);
+        let srgan = Some(end_timestamp - start_timestamp);
+        log::warn!("{}: SRGAN test complete in {:?} miliseconds", node.pid, srgan);
 
         // Return stats
         return ThalamusNodeStats { 
-            stt_tiny: tiny_stt,
-            stt_base: basic_stt,
-            stt_medium: medium_stt,
-            stt_large: large_stt,
-            stt_score: stt_score,
-            llama_tiny: llama_tiny,
-            llama_basic: llama_basic,
-            llama_medium: llama_medium,
-            llama_large: llama_large,
-            llama_score: llama_score,
-            vwav_tiny: vwav_tiny,
-            vwav_base: vwav_base,
-            vwav_medium: vwav_medium,
-            vwav_large: vwav_large,
-            vwav_score: vwav_score, 
-            srgan: srgan,
-            espeak_tts: 0,
-            apple_tts: 0,
-            google_tts: 0,
-            watson_tts: 0,
-            deepspeech_tts: 0,
-            tts_score: 0,
-            nst_score: 0
+            whisper_stt_tiny: tiny_stt,
+            whisper_stt_base: basic_stt,
+            whisper_stt_medium: medium_stt,
+            whisper_stt_large: large_stt,
+            whisper_stt_score: None,
+            llama_7b: llama_7b,
+            llama_13b: None,
+            llama_30b: llama_30b,
+            llama_65b: llama_65b,
+            llama_score: None,
+            whisper_vwav_tiny: whisper_vwav_tiny,
+            whisper_vwav_base: whisper_vwav_base,
+            whisper_vwav_medium: whisper_vwav_medium,
+            whisper_vwav_large: whisper_vwav_large,
+            whisper_vwav_score: None, 
+            srgan_score: srgan,
+            espeak_tts: None,
+            apple_tts: None,
+            bark_tts: None,
+            watson_tts: None,
+            deepspeech_tts: None,
+            tts_score: None,
+            nst_score: None
         };
     }
 }

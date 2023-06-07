@@ -7,6 +7,8 @@
 // Developed by Caleb Mitchell Smith (PixelCoda)
 // Licensed under GPLv3....see LICENSE file.
 
+// https://github.com/suno-ai/bark
+
 use rouille::Request;
 use rouille::Response;
 use rouille::post_input;
