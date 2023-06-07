@@ -14,7 +14,6 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 extern crate rouille;
-extern crate mdns_responder_rs;
 
 pub mod thalamus;
 pub mod p2p;
@@ -107,13 +106,13 @@ pub fn preinit(){
     }
 
 
-    let responder = mdns_responder_rs::Responder::new().unwrap();
-    let _svc = responder.register(
-        "_thalamus._tcp.local".to_owned(),
-        "Thalamus".to_owned(),
-        8050,
-        &["path=/"],
-    );
+    // let responder = mdns_responder_rs::Responder::new().unwrap();
+    // let _svc = responder.register(
+    //     "_thalamus._tcp.local".to_owned(),
+    //     "Thalamus".to_owned(),
+    //     8050,
+    //     &["path=/"],
+    // );
 
 
     // Print Application Art and Version Information
