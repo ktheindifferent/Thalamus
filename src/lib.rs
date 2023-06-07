@@ -8,8 +8,8 @@ use local_ip_address::list_afinet_netifas;
 
 
 
-use simple_logger::SimpleLogger;
-use std::path::Path;
+
+
 
 use std::sync::{Arc, Mutex};
 
@@ -102,7 +102,7 @@ pub fn preinit(){
     //         SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
     //     }
     // } else {
-        simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
+        simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_local_timestamps().init().unwrap();
     // }
 
 

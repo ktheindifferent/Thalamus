@@ -14,8 +14,8 @@
 
 use rouille::Request;
 use rouille::Response;
-use std::fs::File;
-use std::io::Write;
+
+
 
 pub fn handle(_request: &Request) -> Result<Response, crate::thalamus::http::Error> {
     return Ok(Response::empty_404());

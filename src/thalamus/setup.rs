@@ -12,8 +12,8 @@
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 use std::path::Path;
-use std::fs::File;
-use std::io::Write;
+
+// use std::io::Write;
 use error_chain::error_chain;
 
 error_chain! {
