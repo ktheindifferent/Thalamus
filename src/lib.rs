@@ -478,34 +478,30 @@ impl ThalamusNode {
     }
 
     pub fn test_llama_7b(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
-        log::info!("{}: Running LLAMA 7B test...", self.pid);
-        let (sender, receiver) = mpsc::channel();
-        let node_c = self.clone();
-        let t = thread::spawn(move || {
-
-        
-            let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-            let _llama = node_c.llama("Tell me about Abraham Lincoln.".to_string(), "7B".to_string()).unwrap();
-            let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-            let time_elapsed = Some(end_timestamp - start_timestamp);
-
-            match sender.send(time_elapsed) {
-                Ok(()) => {}, // everything good
-                Err(_) => {}, // we have been released, don't panic
-            }
-        });
-        return receiver.recv_timeout(std::time::Duration::from_millis(60000));
+        return self.test_llama("7B".to_string());
     }
 
     pub fn test_llama_13b(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
-        log::info!("{}: Running LLAMA 13B test...", self.pid);
+        return self.test_llama("13B".to_string());
+    }
+
+    pub fn test_llama_30b(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
+        return self.test_llama("30B".to_string());
+    }
+
+    pub fn test_llama_65b(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
+        return self.test_llama("65B".to_string());
+    }
+
+    pub fn test_llama(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
+        log::info!("{}: Running LLAMA {} test...", self.pid, model);
         let (sender, receiver) = mpsc::channel();
         let node_c = self.clone();
         let t = thread::spawn(move || {
 
         
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-            let _llama = node_c.llama("Tell me about Abraham Lincoln.".to_string(), "13B".to_string()).unwrap();
+            let _llama = node_c.llama("Tell me about Abraham Lincoln.".to_string(), model.to_string()).unwrap();
             let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             let time_elapsed = Some(end_timestamp - start_timestamp);
 
@@ -693,23 +689,62 @@ impl ThalamusNodeStats {
         log::info!("{}: LLAMA 13B test complete in {:?} miliseconds", node.pid, llama_13b);
 
         // Test LLAMA 30B
-        log::info!("{}: Running LLAMA 30B test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "30B".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama_30b = Some(end_timestamp - start_timestamp);
-        log::info!("{}: LLAMA 30B test complete in {:?} miliseconds", node.pid, llama_7b);
+        let mut llama_30b: Option<i64> = None;
+        let llama_30b_test = node.test_llama_30b();
+        match llama_30b_test {
+            Ok(time_elapsed) => {
+                llama_30b = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running Llama 30B test: {:?}", node.pid, e);
+            }
+        }
+        log::info!("{}: LLAMA 30B test complete in {:?} miliseconds", node.pid, llama_30b);
 
         // Test LLAMA 65B
-        log::info!("{}: Running LLAMA 65B test...", node.pid);
-        let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let _llama = node.llama("Tell me about Abraham Lincoln.".to_string(), "65B".to_string()).unwrap();
-        let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-        let llama_65b = Some(end_timestamp - start_timestamp);
-        log::info!("{}: LLAMA 65B test complete in {:?} miliseconds", node.pid, llama_7b);
+        let mut llama_65b: Option<i64> = None;
+        let llama_65b_test = node.test_llama_65b();
+        match llama_65b_test {
+            Ok(time_elapsed) => {
+                llama_65b = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running Llama 65B test: {:?}", node.pid, e);
+            }
+        }
+        log::info!("{}: LLAMA 65B test complete in {:?} miliseconds", node.pid, llama_65b);
 
         // Calculate average llama score
-        // let llama_score = (llama_7b + 0 + llama_30b + llama_65b) / 4;
+        let mut llama_score = 0;
+        match llama_7b {
+            Some(llama_7bx) => {
+                llama_score  = llama_7bx;
+            },
+            None => {}
+        }
+        match llama_13b {
+            Some(llama_13bx) => {
+                llama_score  = llama_score + llama_13bx / 2;
+            },
+            None => {}
+        }
+        match llama_30b {
+            Some(llama_30bx) => {
+                llama_score  = llama_score + llama_30bx / 2;
+            },
+            None => {}
+        }
+        match llama_65b {
+            Some(llama_65bx) => {
+                llama_score  = llama_score + llama_65bx / 2;
+            },
+            None => {}
+        }
+
+        let mut final_llama_score: Option<i64> = None;
+        if llama_score > 0 {
+            final_llama_score = Some(llama_score);
+        }
 
         // Test SRGAN
         log::info!("{}: Running SRGAN test...", node.pid);
@@ -727,10 +762,10 @@ impl ThalamusNodeStats {
             whisper_stt_large: large_stt,
             whisper_stt_score: None,
             llama_7b: llama_7b,
-            llama_13b: None,
+            llama_13b: llama_13b,
             llama_30b: llama_30b,
             llama_65b: llama_65b,
-            llama_score: None,
+            llama_score: final_llama_score,
             whisper_vwav_tiny: whisper_vwav_tiny,
             whisper_vwav_base: whisper_vwav_base,
             whisper_vwav_medium: whisper_vwav_medium,
