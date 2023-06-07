@@ -1,12 +1,21 @@
+// ████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ 
+//    ██    ██   ██ ██   ██ ██      ██   ██ ████  ████ ██    ██ ██      
+//    ██    ███████ ███████ ██      ███████ ██ ████ ██ ██    ██ ███████ 
+//    ██    ██   ██ ██   ██ ██      ██   ██ ██  ██  ██ ██    ██      ██ 
+//    ██    ██   ██ ██   ██ ███████ ██   ██ ██      ██  ██████  ███████                                                                             
+// Copyright 2021-2023 The Open Sam Foundation (OSF)
+// Developed by Caleb Mitchell Smith (PixelCoda)
+// Licensed under GPLv3....see LICENSE file.
+
 use std::error::Error;
 
-
+use libp2p::futures::StreamExt;
 // use std::io::Result;
 
 
 
 
-use futures::StreamExt;
+// use futures::StreamExt;
 use libp2p::{
     core::transport::upgrade::Version,
     multiaddr::Protocol,

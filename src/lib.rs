@@ -1,45 +1,31 @@
-
-use std::time::{SystemTime, UNIX_EPOCH};
-use serde::{Serialize, Deserialize};
-use rand::{thread_rng, Rng};
-use rand::distributions::Alphanumeric;
+// ████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ 
+//    ██    ██   ██ ██   ██ ██      ██   ██ ████  ████ ██    ██ ██      
+//    ██    ███████ ███████ ██      ███████ ██ ████ ██ ██    ██ ███████ 
+//    ██    ██   ██ ██   ██ ██      ██   ██ ██  ██  ██ ██    ██      ██ 
+//    ██    ██   ██ ██   ██ ███████ ██   ██ ██      ██  ██████  ███████                                                                             
+// Copyright 2021-2023 The Open Sam Foundation (OSF)
+// Developed by Caleb Mitchell Smith (PixelCoda)
+// Licensed under GPLv3....see LICENSE file.
 
 use local_ip_address::list_afinet_netifas;
-
-
-
-
-
-
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+use serde::{Serialize, Deserialize};
+use simple_dns::{Name, CLASS, ResourceRecord, rdata::{RData, A, SRV}};
+use simple_mdns::async_discovery::SimpleMdnsResponder;
+use std::error::Error;
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
+use std::{net::IpAddr};
+use tokio::task::yield_now;
+use tokio::task;
 
 extern crate rouille;
 
 pub mod thalamus;
 pub mod p2p;
 
-// store application version as a const
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
-
-// use error_chain::error_chain;
-// error_chain! {
-//     foreign_links {
-//         Io(std::io::Error);
-//         HttpRequest(reqwest::Error);
-//         Json(serde_json::Error);
-//     }
-// }
-use std::error::Error;
-use std::{net::IpAddr};
-
-use tokio::task;
-use tokio::task::yield_now;
-
-// const SERVICE_NAME: &'static str = "_thalamus._tcp.local";
-use simple_mdns::async_discovery::SimpleMdnsResponder;
-use simple_dns::{Name, CLASS, ResourceRecord, rdata::{RData, A, SRV}};
-
-
 
 
 
@@ -91,29 +77,9 @@ pub fn preinit(){
     // cls
     clearscreen::clear().unwrap();
 
-
     sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
     
-    // if Path::new("/opt/thalamus/").exists() {
-    //     let touch_status = crate::thalamus::tools::touch("/opt/thalamus/output.log".to_string());
-    //     if touch_status.is_ok() {
-    //         SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).with_output_file("/opt/thalamus/output.log".to_string()).init().unwrap();
-    //     } else {
-    //         SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
-    //     }
-    // } else {
-        simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_local_timestamps().init().unwrap();
-    // }
-
-
-    // let responder = mdns_responder_rs::Responder::new().unwrap();
-    // let _svc = responder.register(
-    //     "_thalamus._tcp.local".to_owned(),
-    //     "Thalamus".to_owned(),
-    //     8050,
-    //     &["path=/"],
-    // );
-
+    simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_utc_timestamps().init().unwrap();
 
     // Print Application Art and Version Information
     println!("████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ ");
@@ -142,7 +108,6 @@ impl ThalamusClient {
         }
     }
 
-    // Automatically discover thalamus nodes
     pub fn ipv4_discovery(&mut self){
 
         let network_interfaces = list_afinet_netifas().unwrap();
@@ -185,7 +150,7 @@ impl ThalamusClient {
         
     }
 
-    pub async fn mdns_discovery(&mut self, discovery: simple_mdns::async_discovery::ServiceDiscovery) -> Result<simple_mdns::async_discovery::ServiceDiscovery, mdns::Error> {
+    pub async fn mdns_discovery(&mut self, discovery: simple_mdns::async_discovery::ServiceDiscovery) -> Result<simple_mdns::async_discovery::ServiceDiscovery, std::io::Error> {
         let nodex = Arc::clone(&self.nodes);
 
         let services = discovery.get_known_services().await;
@@ -264,15 +229,12 @@ impl ThalamusClient {
         }
     }
 
-
-    // TODO: Save client state to disk
     pub fn save(&self){
         std::fs::File::create("/opt/thalamusc/clients.json").expect("create failed");
         let j = serde_json::to_string(&self).unwrap();
         std::fs::write("/opt/thalamusc/clients.json", j).expect("Unable to write file");
     }
 
-    // TODO: Load client state from disk
     pub fn load() -> Result<ThalamusClient, Box<dyn Error>>{
         let save_file = std::fs::read_to_string("/opt/thalamusc/clients.json");
         match save_file {

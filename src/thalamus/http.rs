@@ -32,24 +32,13 @@ error_chain! {
     }
 }
 
-// pub fn init(){
-//     thread::spawn(move || {
-//         rouille::start_server(format!("0.0.0.0:8050").as_str(), move |request| {
-        
-            
-
-//         });
-//     });
-// }
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct VersionHeader {
     pub version: String,
     pub pid: String,
 }
 
-// TODO - Authenticate connections using a one time key and expiring Sessions
-// WW
+
 pub fn handle(request: &Request) -> Result<Response> {
 
     if request.url().contains("/api/thalamus/version"){
