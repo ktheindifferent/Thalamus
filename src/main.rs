@@ -90,14 +90,14 @@ async fn main() {
             let current_exe_path = format!("{}", exe_path.display());
 
             if current_exe_path.as_str() != "/opt/thalamus/bin/thalamus"{
-                // match thalamus::thalamus::setup::install(){
-                //     Ok(_) => log::warn!("Installed thalamus"),
-                //     Err(e) => log::error!("Error installing thalamus: {}", e),
-                // };
-                // match thalamus::thalamus::setup::install_client(){
-                //     Ok(_) => log::warn!("Installed thalamus client"),
-                //     Err(e) => log::error!("Error installing thalamus client: {}", e),
-                // };
+                match thalamus::thalamus::setup::install(){
+                    Ok(_) => log::warn!("Installed thalamus"),
+                    Err(e) => log::error!("Error installing thalamus: {}", e),
+                };
+                match thalamus::thalamus::setup::install_client(){
+                    Ok(_) => log::warn!("Installed thalamus client"),
+                    Err(e) => log::error!("Error installing thalamus client: {}", e),
+                };
             }
         },
         Err(e) => log::error!("Error getting current executable path: {}", e),
