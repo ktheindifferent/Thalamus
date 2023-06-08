@@ -128,9 +128,9 @@ async fn main() {
 
             discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
             thalamus.nodex_discovery().await;
-            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             i += 1;
-            if i > 4 {
+            if i > 10 {
                 discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
                 i = 0;
             }
@@ -176,7 +176,7 @@ async fn main() {
                 })
             ));
 
-            std::thread::sleep(std::time::Duration::from_secs(2));
+            std::thread::sleep(std::time::Duration::from_secs(10));
 
         }
 
