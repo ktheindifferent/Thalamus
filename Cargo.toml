@@ -31,3 +31,4 @@ simple-mdns  = { version = "0.4.0", features = ["async-tokio"] }
 simple-dns = "0.5.2"
 libp2p = { version = "0.51.3", features = ["full", "async-std", "tcp", "dns", "websocket", "noise", "mplex", "yamux", "ping", "rendezvous", "identify"] }
 tokio = { version = "1.21.2", features = ["full"] }
+libmdns = "0.7"

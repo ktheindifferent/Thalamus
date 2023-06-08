@@ -172,9 +172,8 @@ impl ThalamusClient {
         Ok(discovery)
     }
 
-    // pub async fn start_mdns_responder(&mut self) -> tokio::task::JoinHandle<>{
+    // pub fn start_mdns_responder(&mut self){
 
-    //     return task;
     // }
     
     pub async fn nodex_discovery(&mut self){

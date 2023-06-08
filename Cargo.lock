@@ -2142,6 +2142,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fc7aa29613bd6a620df431842069224d8bc9011086b1db4c0e0cd47fa03ec9a"
 
 [[package]]
+name = "libmdns"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b04ae6b56b3b19ade26f0e7e7c1360a1713514f326c5ed0797cf2c109c9e010"
+dependencies = [
+ "byteorder",
+ "futures-util",
+ "hostname",
+ "if-addrs",
+ "log",
+ "multimap",
+ "nix 0.23.2",
+ "rand 0.8.5",
+ "socket2",
+ "thiserror",
+ "tokio",
+ "winapi",
+]
+
+[[package]]
 name = "libp2p"
 version = "0.51.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3101,6 +3121,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "multimap"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "multipart"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3231,6 +3260,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77a5d83df9f36fe23f0c3648c6bbb8b0298bb5f1939c8f2704431371f4b84d43"
 dependencies = [
  "smallvec",
+]
+
+[[package]]
+name = "nix"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f3790c00a0150112de0f4cd161e3d7fc4b2d8a5542ffc35f099a2562aecb35c"
+dependencies = [
+ "bitflags",
+ "cc",
+ "cfg-if",
+ "libc",
+ "memoffset",
 ]
 
 [[package]]
@@ -4696,6 +4738,7 @@ version = "0.0.12"
 dependencies = [
  "clearscreen",
  "error-chain",
+ "libmdns",
  "libp2p",
  "local-ip-address",
  "log",

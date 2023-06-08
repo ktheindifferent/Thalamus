@@ -137,55 +137,7 @@ async fn main() {
         }
     });
 
-    let mdns_task = task::spawn(async move{
-        loop{
-            task::spawn(async move{
-            
-            
-                let network_interfaces = list_afinet_netifas().unwrap();
-
-                let mut responder = SimpleMdnsResponder::new(10);
-                let srv_name = Name::new_unchecked("_thalamus._tcp.local");
-            
-                for (_name, ip) in network_interfaces.iter() {
-                    if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
-                        match *ip {
-                            IpAddr::V4(ipv4) => { 
-                                responder.add_resource(ResourceRecord::new(
-                                    srv_name.clone(),
-                                    CLASS::IN,
-                                    10,
-                                    RData::A(A { address: ipv4.into() }),
-                                )).await;
-                            },
-                            IpAddr::V6(_ipv6) => { /* handle IPv6 */ }
-                        }
-        
-                        
-                    }
-                }
-            
-                responder.add_resource(ResourceRecord::new(
-                    srv_name.clone(),
-                    CLASS::IN,
-                    10,
-                    RData::SRV(SRV {
-                        port: 8050,
-                        priority: 0,
-                        weight: 0,
-                        target: srv_name
-                    })
-                )).await;
-        
-                yield_now().await;
-    
-                
-                
-            });
-            tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-        }
-    });
-
+    // main
     std::thread::spawn(|| {
         match std::env::current_exe() {
             Ok(exe_path) => {
@@ -214,10 +166,25 @@ async fn main() {
         }
     });
 
+    // mdns
+    std::thread::spawn(|| {
+        let responder = libmdns::Responder::new().unwrap();
+        let _svc = responder.register(
+            "_thalamus._tcp.local".to_owned(),
+            "thalamus".to_owned(),
+            8050,
+            &["path=/"],
+        );
+    
+        loop {
+            ::std::thread::sleep(::std::time::Duration::from_secs(10));
+        }
+    });
+
+    
     let _idk = tokio::join!(
         p2p_server,
         discovery_server,
-        mdns_task,
     );
     loop {}
 
