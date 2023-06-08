@@ -291,6 +291,7 @@ impl ThalamusClient {
             Err(e) => {
                 log::error!("{}", format!("Unable to read save file: {}", e));
                 if retries < 10 {
+                    std::thread::sleep(std::time::Duration::from_secs(2));
                     return Self::load(retries + 1);
                 } else {
                     log::warn!("Unable to read save file after 10 attempts....creating new save file.");
@@ -542,7 +543,7 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_millis(60000));
+        return receiver.recv_timeout(std::time::Duration::from_millis(600));
     }
 
     pub fn test_llama(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
@@ -560,7 +561,7 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_millis(120000));
+        return receiver.recv_timeout(std::time::Duration::from_secs(600));
     }
 
     pub fn test_whisper_stt(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
@@ -590,7 +591,7 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_millis(120000));
+        return receiver.recv_timeout(std::time::Duration::from_secs(600));
     }
 
     pub fn test_whisper_vwav(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
@@ -620,7 +621,7 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_millis(120000));
+        return receiver.recv_timeout(std::time::Duration::from_secs(600));
     }
 }
 

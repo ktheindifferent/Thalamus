@@ -20,6 +20,10 @@
 // - publish 0.0.1
 
 // TODO (0.0.2):
+// - Fix mdns responder first boot work bug
+
+
+
 // - capablities framework for nodes
 // - apple natice TTS support?
 // - deepspeech TTS support?
