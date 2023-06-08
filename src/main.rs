@@ -55,7 +55,11 @@
 use tokio::task;
 use rouille::Server;
 use rouille::Response;
-
+use tokio::task::yield_now;
+use simple_dns::{Name, CLASS, ResourceRecord, rdata::{RData, A, SRV}};
+use simple_mdns::async_discovery::SimpleMdnsResponder;
+use std::{net::IpAddr};
+use local_ip_address::list_afinet_netifas;
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 
@@ -102,7 +106,9 @@ async fn main() {
 
     // // Setup Thalamus Client
     // let mut thalamus = thalamus::ThalamusClient::load(0).unwrap();
-
+    
+    // // Respond to mDNS queries with thalamus service information
+    // thalamus.start_mdns_responder().await;
 
 
 
@@ -119,16 +125,64 @@ async fn main() {
         let mut i = 0;
         loop{
             let mut thalamus = thalamus::ThalamusClient::load(0).unwrap();
-            // Respond to mDNS queries with thalamus service information
-            thalamus.start_mdns_responder().await;
+
             discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
             thalamus.nodex_discovery().await;
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             i += 1;
             if i > 8 {
                 discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
                 i = 0;
             }
+        }
+    });
+
+    let mdns_task = task::spawn(async move{
+        loop{
+            task::spawn(async move{
+            
+            
+                let network_interfaces = list_afinet_netifas().unwrap();
+
+                let mut responder = SimpleMdnsResponder::new(10);
+                let srv_name = Name::new_unchecked("_thalamus._tcp.local");
+            
+                for (_name, ip) in network_interfaces.iter() {
+                    if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
+                        match *ip {
+                            IpAddr::V4(ipv4) => { 
+                                responder.add_resource(ResourceRecord::new(
+                                    srv_name.clone(),
+                                    CLASS::IN,
+                                    10,
+                                    RData::A(A { address: ipv4.into() }),
+                                )).await;
+                            },
+                            IpAddr::V6(_ipv6) => { /* handle IPv6 */ }
+                        }
+        
+                        
+                    }
+                }
+            
+                responder.add_resource(ResourceRecord::new(
+                    srv_name.clone(),
+                    CLASS::IN,
+                    10,
+                    RData::SRV(SRV {
+                        port: 8050,
+                        priority: 0,
+                        weight: 0,
+                        target: srv_name
+                    })
+                )).await;
+        
+                yield_now().await;
+    
+                
+                
+            });
+            tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
         }
     });
 
@@ -163,6 +217,7 @@ async fn main() {
     let _idk = tokio::join!(
         p2p_server,
         discovery_server,
+        mdns_task,
     );
     loop {}
 

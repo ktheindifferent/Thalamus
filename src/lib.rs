@@ -11,13 +11,12 @@ use local_ip_address::list_afinet_netifas;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use serde::{Serialize, Deserialize};
-use simple_dns::{Name, CLASS, ResourceRecord, rdata::{RData, A, SRV}};
-use simple_mdns::async_discovery::SimpleMdnsResponder;
+
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::{net::IpAddr};
-use tokio::task::yield_now;
+
+
 use tokio::task;
 use std::thread;
 use std::sync::mpsc;
@@ -173,48 +172,10 @@ impl ThalamusClient {
         Ok(discovery)
     }
 
-    pub async fn start_mdns_responder(&mut self){
-        let network_interfaces = list_afinet_netifas().unwrap();
-        task::spawn(async move{
-            
-    
-            let mut responder = SimpleMdnsResponder::new(10);
-            let srv_name = Name::new_unchecked("_thalamus._tcp.local");
-        
-            for (_name, ip) in network_interfaces.iter() {
-                if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
-                    match *ip {
-                        IpAddr::V4(ipv4) => { 
-                            responder.add_resource(ResourceRecord::new(
-                                srv_name.clone(),
-                                CLASS::IN,
-                                10,
-                                RData::A(A { address: ipv4.into() }),
-                            )).await;
-                         },
-                        IpAddr::V6(_ipv6) => { /* handle IPv6 */ }
-                    }
-    
-                    
-                }
-            }
-        
-            responder.add_resource(ResourceRecord::new(
-                srv_name.clone(),
-                CLASS::IN,
-                10,
-                RData::SRV(SRV {
-                    port: 8050,
-                    priority: 0,
-                    weight: 0,
-                    target: srv_name
-                })
-            )).await;
-    
-            yield_now().await;
-            
-        });
-    }
+    // pub async fn start_mdns_responder(&mut self) -> tokio::task::JoinHandle<>{
+
+    //     return task;
+    // }
     
     pub async fn nodex_discovery(&mut self){
         let nodell = self.nodes.lock().unwrap();
