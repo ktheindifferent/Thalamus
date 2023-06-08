@@ -22,6 +22,7 @@ use rouille::post_input;
 
 use std::path::Path;
 
+// curl -d "prompt=tell me about abe lincoln&model=7B" -X POST http://172.16.0.15:8050/api/services/llama
 pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Error> {
     
     if request.url().contains("/api/services/llama"){
@@ -59,6 +60,11 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
         #[cfg(all(target_arch = "x86_64", target_os = "linux"))] {
             crate::thalamus::tools::download("/opt/thalamus/bin/llama", "https://www.dropbox.com/s/93sj2fruleo80y0/main")?;
         }
+    }
+
+    match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/llama"){
+        Ok(_) => (),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod whisper").into())
     }
 
     

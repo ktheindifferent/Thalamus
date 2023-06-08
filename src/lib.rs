@@ -254,6 +254,16 @@ impl ThalamusClient {
         std::fs::File::create("/opt/thalamusc/clients.json").expect("create failed");
         let j = serde_json::to_string(&self).unwrap();
         std::fs::write("/opt/thalamusc/clients.json", j).expect("Unable to write file");
+
+
+        let nodex = self.nodes.lock().unwrap();
+        let nodes = nodex.clone();
+        std::mem::drop(nodex);
+        if nodes.len() > 0 {
+            std::fs::File::create("/opt/thalamusc/clients.bak.json").expect("create failed");
+            let j = serde_json::to_string(&self).unwrap();
+            std::fs::write("/opt/thalamusc/clients.bak.json", j).expect("Unable to write file");
+        }
     }
 
     pub fn load(retries: i64) -> Result<ThalamusClient, Box<dyn Error>>{
@@ -276,6 +286,8 @@ impl ThalamusClient {
                         log::error!("{}", format!("Unable to parse save file: {}", e));
                         
                         if retries < 10 {
+                            std::fs::copy("/opt/thalamusc/clients.bak.json", "/opt/thalamusc/clients.json")?;
+                            std::thread::sleep(std::time::Duration::from_secs(2));
                             return Self::load(retries + 1);
                         } else {
                             log::warn!("Unable to parse save file after 10 attempts....creating new save file.");
@@ -291,6 +303,7 @@ impl ThalamusClient {
             Err(e) => {
                 log::error!("{}", format!("Unable to read save file: {}", e));
                 if retries < 10 {
+                    std::fs::copy("/opt/thalamusc/clients.bak.json", "/opt/thalamusc/clients.json")?;
                     std::thread::sleep(std::time::Duration::from_secs(2));
                     return Self::load(retries + 1);
                 } else {
@@ -543,7 +556,7 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_millis(600));
+        return receiver.recv_timeout(std::time::Duration::from_millis(100));
     }
 
     pub fn test_llama(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
@@ -561,7 +574,7 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_secs(600));
+        return receiver.recv_timeout(std::time::Duration::from_secs(100));
     }
 
     pub fn test_whisper_stt(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
@@ -591,7 +604,7 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_secs(600));
+        return receiver.recv_timeout(std::time::Duration::from_secs(100));
     }
 
     pub fn test_whisper_vwav(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
@@ -621,7 +634,7 @@ impl ThalamusNode {
                 Err(_) => {}, // we have been released, don't panic
             }
         });
-        return receiver.recv_timeout(std::time::Duration::from_secs(600));
+        return receiver.recv_timeout(std::time::Duration::from_secs(100));
     }
 }
 

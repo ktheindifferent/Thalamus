@@ -72,5 +72,10 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
         }
     }
 
+    match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/srgan"){
+        Ok(_) => (),
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to chmod whisper").into())
+    }
+
     Ok(())
 }

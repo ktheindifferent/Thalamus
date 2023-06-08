@@ -100,11 +100,11 @@ async fn main() {
     };
 
 
-    // Setup Thalamus Client
-    let mut thalamus = thalamus::ThalamusClient::load(0).unwrap();
+    // // Setup Thalamus Client
+    // let mut thalamus = thalamus::ThalamusClient::load(0).unwrap();
 
-    // Respond to mDNS queries with thalamus service information
-    thalamus.start_mdns_responder().await;
+
+
 
     // Initialize the p2p server
     let p2p_server = task::spawn(async {
@@ -114,14 +114,16 @@ async fn main() {
 
 
     let discovery_server = task::spawn(async {
-        let mut thalamus = thalamus::ThalamusClient::load(0).unwrap();
+        
         let mut discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
         let mut i = 0;
         loop{
+            let mut thalamus = thalamus::ThalamusClient::load(0).unwrap();
+            // Respond to mDNS queries with thalamus service information
+            thalamus.start_mdns_responder().await;
             discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
             thalamus.nodex_discovery().await;
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-            thalamus = thalamus::ThalamusClient::load(0).unwrap();
             i += 1;
             if i > 8 {
                 discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
