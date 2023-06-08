@@ -57,7 +57,7 @@ use rouille::Server;
 use rouille::Response;
 use tokio::task::yield_now;
 use simple_dns::{Name, CLASS, ResourceRecord, rdata::{RData, A, SRV}};
-use simple_mdns::async_discovery::SimpleMdnsResponder;
+use simple_mdns::sync_discovery::SimpleMdnsResponder;
 use std::{net::IpAddr};
 use local_ip_address::list_afinet_netifas;
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
@@ -90,14 +90,14 @@ async fn main() {
             let current_exe_path = format!("{}", exe_path.display());
 
             if current_exe_path.as_str() != "/opt/thalamus/bin/thalamus"{
-                match thalamus::thalamus::setup::install(){
-                    Ok(_) => log::warn!("Installed thalamus"),
-                    Err(e) => log::error!("Error installing thalamus: {}", e),
-                };
-                match thalamus::thalamus::setup::install_client(){
-                    Ok(_) => log::warn!("Installed thalamus client"),
-                    Err(e) => log::error!("Error installing thalamus client: {}", e),
-                };
+                // match thalamus::thalamus::setup::install(){
+                //     Ok(_) => log::warn!("Installed thalamus"),
+                //     Err(e) => log::error!("Error installing thalamus: {}", e),
+                // };
+                // match thalamus::thalamus::setup::install_client(){
+                //     Ok(_) => log::warn!("Installed thalamus client"),
+                //     Err(e) => log::error!("Error installing thalamus client: {}", e),
+                // };
             }
         },
         Err(e) => log::error!("Error getting current executable path: {}", e),
@@ -128,16 +128,62 @@ async fn main() {
 
             discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
             thalamus.nodex_discovery().await;
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
             i += 1;
-            if i > 8 {
+            if i > 4 {
                 discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
                 i = 0;
             }
         }
     });
 
-    // main
+    std::thread::spawn(|| {
+        let network_interfaces = list_afinet_netifas().unwrap();
+        let mut responder = SimpleMdnsResponder::new(10);
+        let srv_name = Name::new_unchecked("_thalamus._tcp.local");
+
+        loop{
+
+            responder.clear();
+        
+            for (_name, ip) in network_interfaces.iter() {
+                if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
+                    match *ip {
+                        IpAddr::V4(ipv4) => { 
+                            responder.add_resource(ResourceRecord::new(
+                                srv_name.clone(),
+                                CLASS::IN,
+                                10,
+                                RData::A(A { address: ipv4.into() }),
+                            ));
+                        },
+                        IpAddr::V6(_ipv6) => { /* handle IPv6 */ }
+                    }
+
+                    
+                }
+            }
+        
+            responder.add_resource(ResourceRecord::new(
+                srv_name.clone(),
+                CLASS::IN,
+                10,
+                RData::SRV(SRV {
+                    port: 8050,
+                    priority: 0,
+                    weight: 0,
+                    target: srv_name.clone()
+                })
+            ));
+
+            std::thread::sleep(std::time::Duration::from_secs(2));
+
+        }
+
+            
+        
+    });
+
     std::thread::spawn(|| {
         match std::env::current_exe() {
             Ok(exe_path) => {
@@ -167,19 +213,19 @@ async fn main() {
     });
 
     // mdns
-    std::thread::spawn(|| {
-        let responder = libmdns::Responder::new().unwrap();
-        let _svc = responder.register(
-            "_thalamus._tcp.local".to_owned(),
-            "thalamus".to_owned(),
-            8050,
-            &["path=/"],
-        );
+    // std::thread::spawn(|| {
+    //     let responder = libmdns::Responder::new().unwrap();
+    //     let _svc = responder.register(
+    //         "_thalamus._tcp.local".to_owned(),
+    //         "thalamus".to_owned(),
+    //         8050,
+    //         &["path=/"],
+    //     );
     
-        loop {
-            ::std::thread::sleep(::std::time::Duration::from_secs(10));
-        }
-    });
+    //     loop {
+    //         ::std::thread::sleep(::std::time::Duration::from_secs(10));
+    //     }
+    // });
 
     
     let _idk = tokio::join!(

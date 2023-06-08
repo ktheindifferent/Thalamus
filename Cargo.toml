@@ -27,7 +27,7 @@ reqwest = { version = "0.11.6", default-features = false, features = ["blocking"
 port_scanner = "0.1.5"
 sha2 = "0.10.6"
 serde_json = "1.0.96"
-simple-mdns  = { version = "0.4.0", features = ["async-tokio"] }
+simple-mdns  = { version = "0.4.0", features = ["async-tokio", "sync"] }
 simple-dns = "0.5.2"
 libp2p = { version = "0.51.3", features = ["full", "async-std", "tcp", "dns", "websocket", "noise", "mplex", "yamux", "ping", "rendezvous", "identify"] }
 tokio = { version = "1.21.2", features = ["full"] }

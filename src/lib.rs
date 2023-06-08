@@ -151,7 +151,9 @@ impl ThalamusClient {
 
                 // TODO: flag missing nodes as offline
                 let mut nodey = nodex.lock().unwrap();
-                for node in nodey.iter_mut() {
+                let mut nodey_nodes = nodey.clone();
+                std::mem::drop(nodey);
+                for node in nodey_nodes.iter_mut() {
                     let existing_index = xy.ip_addresses.clone().iter().position(|r| node.ip_address.contains(format!("{}", r).as_str()));
                     match existing_index {
                         Some(_) => {
@@ -160,11 +162,13 @@ impl ThalamusClient {
                         None => {
                             node.is_online = false;
                             
-                            self.save();
+                            
                         }
                     }
                 }
-                std::mem::drop(nodey);
+                self.nodes = Arc::new(Mutex::new(nodey_nodes));
+                self.save();
+                
 
             }
         }
