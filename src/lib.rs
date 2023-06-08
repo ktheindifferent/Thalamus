@@ -94,15 +94,15 @@ impl ThalamusClient {
         if services.len() > 0 {
             for xy in services{
                 log::info!("vhhjv: {:?}", xy);
-                // TODO: Register 
-                for ipfx in xy.ip_addresses{
+                // Register using ip address
+                for ipfx in xy.ip_addresses.clone(){
                     let ipx = ipfx.to_string();
                     let port = xy.ports[0];
                     if !ipx.to_string().contains(".0.1"){
                         let version = async_fetch_version(format!("{}:{}", ipx, port).as_str()).await;
                         match version {
                             Ok(v) => {
-                                let mut nodess = nodex.lock().unwrap();
+                                let nodess = nodex.lock().unwrap();
                                 let nodes = nodess.clone();
                                 std::mem::drop(nodess);
                                 let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
@@ -111,12 +111,15 @@ impl ThalamusClient {
                                         let mut nodes = nodex.lock().unwrap();
                                         nodes[index].is_online = true;
                                         nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+                                        
+                                        log::info!("NODE_ONLINE: {:?}", nodes[index].clone());
                                         std::mem::drop(nodes);
                                         self.save();
                                     },
                                     None => {
                                         let thalamus_node = ThalamusNode::new(v.pid.to_string(), v.version.to_string(), format!("{}:{}", ipx, port), 8050);
                                         let mut nodes = nodex.lock().unwrap();
+                                        log::info!("NEW_NODE: {:?}", thalamus_node.clone());
                                         nodes.push(thalamus_node);
                                         std::mem::drop(nodes);
                                         self.save();
@@ -126,7 +129,7 @@ impl ThalamusClient {
                             },
                             Err(e) => {
                                 log::error!("fetch_thalamus_version_error: {}", e);
-                                let mut nodess = nodex.lock().unwrap();
+                                let nodess = nodex.lock().unwrap();
                                 let nodes = nodess.clone();
                                 std::mem::drop(nodess);
                                 let existing_index = nodes.clone().iter().position(|r| r.ip_address == format!("{}:{}", ipx, port).as_str());
@@ -134,6 +137,7 @@ impl ThalamusClient {
                                     Some(index) => {
                                         let mut nodes = nodex.lock().unwrap();
                                         nodes[index].is_online = false;
+                                        log::info!("NODE_OFFLINE: {:?}", nodes[index].clone());
                                         std::mem::drop(nodes);
                                         self.save();
                                     },
@@ -145,6 +149,24 @@ impl ThalamusClient {
                         }
                     }
                 }
+
+                // TODO: flag missing nodes as offline
+                let mut nodey = nodex.lock().unwrap();
+                for node in nodey.iter_mut() {
+                    let existing_index = xy.ip_addresses.clone().iter().position(|r| node.ip_address.contains(format!("{}", r).as_str()));
+                    match existing_index {
+                        Some(_) => {
+
+                        },
+                        None => {
+                            node.is_online = false;
+                            
+                            self.save();
+                        }
+                    }
+                }
+                std::mem::drop(nodey);
+
             }
         }
 
@@ -203,15 +225,16 @@ impl ThalamusClient {
             match nodexs_wrap {
                 Ok(nodexs) => {
                     for nodex in nodexs{
-                        let mut nodes = self.nodes.lock().unwrap();
+                        let nodess = self.nodes.lock().unwrap();
+                        let nodes = nodess.clone();
+                        std::mem::drop(nodess);
                         let existing_index = nodes.clone().iter().position(|r| r.pid == nodex.pid.to_string());
                         match existing_index {
-                            Some(index) => {
-                                nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
-                                std::mem::drop(nodes);
-                                self.save();
+                            Some(_) => {
+
                             },
                             None => {
+                                let mut nodes = self.nodes.lock().unwrap();
                                 nodes.push(nodex);
                                 std::mem::drop(nodes);
                                 self.save();
@@ -233,7 +256,14 @@ impl ThalamusClient {
         std::fs::write("/opt/thalamusc/clients.json", j).expect("Unable to write file");
     }
 
-    pub fn load() -> Result<ThalamusClient, Box<dyn Error>>{
+    pub fn load(retries: i64) -> Result<ThalamusClient, Box<dyn Error>>{
+
+        if !std::path::Path::new("/opt/thalamusc/clients.json").exists(){
+            let new_c = ThalamusClient::new();
+            new_c.save();
+            return Ok(new_c);
+        }
+
         let save_file = std::fs::read_to_string("/opt/thalamusc/clients.json");
         match save_file {
             Ok(save_data) => {
@@ -243,19 +273,31 @@ impl ThalamusClient {
                         return Ok(v2);
                     },
                     Err(e) => {
-                        log::error!("{}", format!("Unable to read save file: {}", e));
-                        let new_c = ThalamusClient::new();
-                        new_c.save();
-                        return Ok(new_c);
+                        log::error!("{}", format!("Unable to parse save file: {}", e));
+                        
+                        if retries < 10 {
+                            return Self::load(retries + 1);
+                        } else {
+                            log::warn!("Unable to parse save file after 10 attempts....creating new save file.");
+                            let new_c = ThalamusClient::new();
+                            new_c.save();
+                            return Ok(new_c);
+                        }
+                 
                     }
                 }
                 
             },
             Err(e) => {
                 log::error!("{}", format!("Unable to read save file: {}", e));
-                let new_c = ThalamusClient::new();
-                new_c.save();
-                return Ok(new_c);
+                if retries < 10 {
+                    return Self::load(retries + 1);
+                } else {
+                    log::warn!("Unable to read save file after 10 attempts....creating new save file.");
+                    let new_c = ThalamusClient::new();
+                    new_c.save();
+                    return Ok(new_c);
+                }
             }
         }
     }
@@ -491,7 +533,7 @@ impl ThalamusNode {
         let node_c = self.clone();
         let _t = thread::spawn(move || {
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-            let srgan = node_c.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
+            let _srgan = node_c.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
             let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             let time_elapsed = Some(end_timestamp - start_timestamp);
 

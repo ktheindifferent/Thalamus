@@ -51,7 +51,7 @@ pub fn handle(request: &Request) -> Result<Response> {
     }
 
     if request.url().contains("/api/nodex"){
-        let thalamus = crate::ThalamusClient::load().unwrap();
+        let thalamus = crate::ThalamusClient::load(0).unwrap();
         return Ok(Response::json(&thalamus.nodes.lock().unwrap().clone()));
     }
 
