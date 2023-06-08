@@ -75,9 +75,9 @@ pub fn whisper_vwav(file_path: String, method: &str) -> Result<String, crate::th
     };
     
     // linux only patch
-    #[cfg(all(target_os = "linux"))] {
-        crate::thalamus::services::whisper::patch_whisper_wts(format!("{}.16.wav.wts", file_path.clone())).unwrap();
-    }
+
+    crate::thalamus::services::whisper::patch_whisper_wts(format!("{}.16.wav.wts", file_path.clone())).unwrap();
+    
     
     match crate::thalamus::tools::mark_as_executable(format!("{}.16.wav.wts", file_path.clone()).as_str()){
         Ok(_) => {},

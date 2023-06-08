@@ -552,7 +552,7 @@ impl ThalamusNode {
     }
 
     pub fn test_whisper_vwav(&self, model: String) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
-        log::info!("{}: Running Whisper STT {} test...", self.pid, model);
+        log::info!("{}: Running Whisper VWAV {} test...", self.pid, model);
         let (sender, receiver) = mpsc::channel();
         let node_c = self.clone();
         let _t = thread::spawn(move || {
@@ -717,8 +717,39 @@ impl ThalamusNodeStats {
             }
             log::info!("{}: STT Large test complete in {:?} miliseconds", node.pid, whisper_stt_large);
         }
+
         // Calculate average STT score
-        // let whisper_stt_score = (whisper_stt_tiny + basic_stt + whisper_stt_medium + whisper_stt_large) / 4;
+        let mut stt_score = 0;
+        match whisper_stt_tiny {
+            Some(count) => {
+                stt_score = count;
+            },
+            None => {}
+        }
+        match whisper_stt_base {
+            Some(count) => {
+                stt_score  = stt_score + count / 2;
+            },
+            None => {}
+        }
+        match whisper_stt_medium {
+            Some(count) => {
+                stt_score  = stt_score + count / 2;
+            },
+            None => {}
+        }
+        match whisper_stt_large {
+            Some(count) => {
+                stt_score  = stt_score + count / 2;
+            },
+            None => {}
+        }
+
+        let mut final_stt_score: Option<i64> = None;
+        if stt_score > 0 {
+            final_stt_score = Some(stt_score);
+        }
+
 
         // Test VWAV Tiny
         let mut whisper_vwav_tiny: Option<i64> = None;
@@ -779,6 +810,39 @@ impl ThalamusNodeStats {
         }
 
         // Calculate average VWAV score
+        let mut vwav_score = 0;
+        match whisper_vwav_tiny {
+            Some(count) => {
+                vwav_score = count;
+            },
+            None => {}
+        }
+        match whisper_vwav_base {
+            Some(count) => {
+                vwav_score  = vwav_score + count / 2;
+            },
+            None => {}
+        }
+        match whisper_vwav_medium {
+            Some(count) => {
+                vwav_score  = vwav_score + count / 2;
+            },
+            None => {}
+        }
+        match whisper_vwav_large {
+            Some(count) => {
+                vwav_score  = vwav_score + count / 2;
+            },
+            None => {}
+        }
+
+        let mut final_vwav_score: Option<i64> = None;
+        if vwav_score > 0 {
+            final_vwav_score = Some(vwav_score);
+        }
+
+
+
         // let whisper_vwav_score = (whisper_vwav_tiny + whisper_vwav_base + whisper_vwav_medium + whisper_vwav_large) / 4;
 
         // Test LLAMA 7B
@@ -890,7 +954,7 @@ impl ThalamusNodeStats {
             whisper_stt_base: whisper_stt_base,
             whisper_stt_medium: whisper_stt_medium,
             whisper_stt_large: whisper_stt_large,
-            whisper_stt_score: None,
+            whisper_stt_score: final_stt_score,
             llama_7b: llama_7b,
             llama_13b: llama_13b,
             llama_30b: llama_30b,
@@ -900,7 +964,7 @@ impl ThalamusNodeStats {
             whisper_vwav_base: whisper_vwav_base,
             whisper_vwav_medium: whisper_vwav_medium,
             whisper_vwav_large: whisper_vwav_large,
-            whisper_vwav_score: None, 
+            whisper_vwav_score: final_vwav_score, 
             srgan_score: srgan,
             espeak_tts: None,
             apple_tts: None,

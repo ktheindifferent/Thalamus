@@ -368,6 +368,8 @@ pub fn whisper_owts(model: &str, file_path: &str) -> Result<String>{
     .arg(format!("/opt/thalamus/models/ggml-{}.bin", model))
     .arg("-f")
     .arg(format!("{}.16.wav", file_path))
+    .arg("-fp")
+    .arg("/opt/thalamus/fonts/courier.ttf")
     .arg("-owts")
     .stdout(Stdio::piped())
     .spawn()
