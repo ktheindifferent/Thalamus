@@ -52,7 +52,7 @@ pub fn handle(request: &Request) -> Result<Response> {
 
     if request.url().contains("/api/nodex"){
         let thalamus = crate::ThalamusClient::load(0).unwrap();
-        return Ok(Response::json(&thalamus.nodes.lock().unwrap().clone()));
+        return Ok(Response::json(&thalamus.nodes));
     }
 
     if request.url().contains("/api/services/llama"){

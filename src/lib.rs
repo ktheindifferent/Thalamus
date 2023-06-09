@@ -28,202 +28,219 @@ pub mod p2p;
 
 
 
+pub async fn nodex_discovery(thalamus: Arc<Mutex<ThalamusClient>>){
+    
+    let thalamus_x = thalamus.lock().unwrap();
+    let thx_clone = thalamus_x.clone();
+    std::mem::drop(thalamus_x);
+    
+    for node in thx_clone.nodes{
+        let nodexs_wrap = node.nodex();
+        match nodexs_wrap {
+            Ok(nodexs) => {
+                for nodex in nodexs{
+                    let mut thalamus_x = thalamus.lock().unwrap();
 
-
-
-/// Struct for storing all nodes connected to the client
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ThalamusClient {
-    pub nodes: Arc<Mutex<Vec<ThalamusNode>>>,
-}
-impl ThalamusClient {
-    pub fn new() -> ThalamusClient {
-        let x: Vec<ThalamusNode> = Vec::new();
-        ThalamusClient { 
-            nodes: Arc::new(Mutex::new(x)),
-        }
-    }
-
-    pub fn ipv4_discovery(&mut self){
-
-        let network_interfaces = list_afinet_netifas().unwrap();
-
-        let nodex = Arc::clone(&self.nodes);
-
-        for (name, ip) in network_interfaces.iter() {
-            if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":"){
-                log::warn!("{}:\t{:?}", name, ip);
-                let ips = crate::thalamus::tools::netscan::scan_bulk(format!("{}", ip).as_str(), "8050", "/24").unwrap();
-                log::warn!("Found {} ips", ips.len());
-            
-                // Check matching ips for thalamus version info
-                for ipx in ips{
-                    let version = fetch_version(ipx.as_str());
-                    match version {
-                        Ok(v) => {
-                            let mut nodes = nodex.lock().unwrap();
-                            let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
-                            match existing_index {
-                                Some(_index) => {
-                                },
-                                None => {
-                                    nodes.push(ThalamusNode::new(v.pid.to_string(), v.version.to_string(), ipx, 8050));
-                                }
-                            }
-                            std::mem::drop(nodes);
-                        },
-                        Err(e) => {
-                            log::error!("fetch_thalamus_version_error: {}", e);
-                        }
-                    }
-                }
-                
-            }
-           
-        }
-
-
-        
-    }
-
-    pub async fn mdns_discovery(&mut self, discovery: simple_mdns::async_discovery::ServiceDiscovery) -> Result<simple_mdns::async_discovery::ServiceDiscovery, std::io::Error> {
-        let nodex = Arc::clone(&self.nodes);
-
-        let services = discovery.get_known_services().await;
-        if services.len() > 0 {
-            for xy in services{
-                log::info!("vhhjv: {:?}", xy);
-                // Register using ip address
-                for ipfx in xy.ip_addresses.clone(){
-                    let ipx = ipfx.to_string();
-                    let port = xy.ports[0];
-                    if !ipx.to_string().contains(".0.1"){
-                        let version = async_fetch_version(format!("{}:{}", ipx, port).as_str()).await;
-                        match version {
-                            Ok(v) => {
-                                let nodess = nodex.lock().unwrap();
-                                let nodes = nodess.clone();
-                                std::mem::drop(nodess);
-                                let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
-                                match existing_index {
-                                    Some(index) => {
-                                        let mut nodes = nodex.lock().unwrap();
-                                        nodes[index].is_online = true;
-                                        nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
-                                        
-                                        log::info!("NODE_ONLINE: {:?}", nodes[index].clone());
-                                        std::mem::drop(nodes);
-                                        self.save();
-                                    },
-                                    None => {
-                                        let thalamus_node = ThalamusNode::new(v.pid.to_string(), v.version.to_string(), format!("{}:{}", ipx, port), 8050);
-                                        let mut nodes = nodex.lock().unwrap();
-                                        log::info!("NEW_NODE: {:?}", thalamus_node.clone());
-                                        nodes.push(thalamus_node);
-                                        std::mem::drop(nodes);
-                                        self.save();
-                                    }
-                                }
-                                
-                            },
-                            Err(e) => {
-                                log::error!("fetch_thalamus_version_error: {}", e);
-                                let nodess = nodex.lock().unwrap();
-                                let nodes = nodess.clone();
-                                std::mem::drop(nodess);
-                                let existing_index = nodes.clone().iter().position(|r| r.ip_address == format!("{}:{}", ipx, port).as_str());
-                                match existing_index {
-                                    Some(index) => {
-                                        let mut nodes = nodex.lock().unwrap();
-                                        nodes[index].is_online = false;
-                                        log::info!("NODE_OFFLINE: {:?}", nodes[index].clone());
-                                        std::mem::drop(nodes);
-                                        self.save();
-                                    },
-                                    None => {
-                                        // std::mem::drop(nodes);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // TODO: flag missing nodes as offline
-                let mut nodey = nodex.lock().unwrap();
-                let mut nodey_nodes = nodey.clone();
-                std::mem::drop(nodey);
-                for node in nodey_nodes.iter_mut() {
-                    let existing_index = xy.ip_addresses.clone().iter().position(|r| node.ip_address.contains(format!("{}", r).as_str()));
+                    let existing_index = thalamus_x.nodes.clone().iter().position(|r| r.pid == nodex.pid.to_string());
                     match existing_index {
                         Some(_) => {
 
                         },
                         None => {
-                            node.is_online = false;
-                            
-                            
+                            thalamus_x.nodes.push(nodex);
+                            thalamus_x.save();
                         }
                     }
+                    std::mem::drop(thalamus_x);
                 }
-                self.nodes = Arc::new(Mutex::new(nodey_nodes));
-                self.save();
-                
-
+            },
+            Err(e) => {
+                log::error!("nodex_discovery_error: {}", e);
             }
         }
 
-        Ok(discovery)
     }
+}
 
-    // pub fn start_mdns_responder(&mut self){
+pub async fn mdns_discovery(thalamus: Arc<Mutex<ThalamusClient>>, discovery: simple_mdns::async_discovery::ServiceDiscovery) -> Result<simple_mdns::async_discovery::ServiceDiscovery, std::io::Error> {
+    let services = discovery.get_known_services().await;
+    if services.len() > 0 {
+        for xy in services{
+            log::info!("vhhjv: {:?}", xy);
+            // Register using ip address
+            for ipfx in xy.ip_addresses.clone(){
+                let ipx = ipfx.to_string();
+                let port = xy.ports[0];
+                if !ipx.to_string().ends_with(".0.1"){
+                    let version = async_fetch_version(format!("{}:{}", ipx, port).as_str()).await;
+                    match version {
+                        Ok(v) => {
+                            let mut thalamus_x = thalamus.lock().unwrap();
 
-    // }
+               
+                            let existing_index = thalamus_x.nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
+                            match existing_index {
+                                Some(index) => {
+      
+                                    thalamus_x.nodes[index].is_online = true;
+                                    thalamus_x.nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+                                    log::info!("NODE_ONLINE: {:?}", thalamus_x.nodes[index].clone());
+                                
+                                    thalamus_x.save();
+                                    
+                                    
+                                    std::mem::drop(thalamus_x);
+                                },
+                                None => {
+                                    let v_thc = v.clone();
+                               
+                                        
+                                    let thalamus_node = ThalamusNode::newq(v_thc.pid.to_string(), v_thc.version.to_string(), format!("{}:{}", ipx, port), 8050);
+                                    log::info!("NEW_NODE: {:?}", thalamus_node.clone());
+                                    thalamus_x.nodes.push(thalamus_node);
+                                    
     
-    pub async fn nodex_discovery(&mut self){
-        let nodell = self.nodes.lock().unwrap();
-        let nodess = nodell.clone();
-        std::mem::drop(nodell);
-        for node in nodess{
-            let nodexs_wrap = node.nodex();
-            match nodexs_wrap {
-                Ok(nodexs) => {
-                    for nodex in nodexs{
-                        let nodess = self.nodes.lock().unwrap();
-                        let nodes = nodess.clone();
-                        std::mem::drop(nodess);
-                        let existing_index = nodes.clone().iter().position(|r| r.pid == nodex.pid.to_string());
-                        match existing_index {
-                            Some(_) => {
+                                    thalamus_x.save();
+                                    std::mem::drop(thalamus_x);
 
-                            },
-                            None => {
-                                let mut nodes = self.nodes.lock().unwrap();
-                                nodes.push(nodex);
-                                std::mem::drop(nodes);
-                                self.save();
+                                    // Calculate Stats
+                                    let node_thc = Arc::clone(&thalamus);
+                                    std::thread::spawn(move || {
+
+                                        let node_ref = ThalamusNode::newq(v_thc.pid.to_string(), v_thc.version.to_string(), format!("{}:{}", ipx, port), 8050);
+                                        let stats = ThalamusNodeStats::calculate(node_ref.clone());
+
+                                        let mut thalamus_x = node_thc.lock().unwrap();
+                            
+                                        for node in &mut thalamus_x.nodes{
+                                            if node.pid == v_thc.pid.to_string(){
+                                                node.stats = stats.clone();
+                                            }
+                                        }
+                                   
+    
+                                        thalamus_x.save();
+                                        std::mem::drop(thalamus_x);
+                                    
+                                    });
+                                 
+                                }
+                            }
+                            
+                        },
+                        Err(e) => {
+                            log::error!("fetch_thalamus_version_error: {}", e);
+                            let mut thalamus_x = thalamus.lock().unwrap();
+      
+         
+                            let existing_index = thalamus_x.nodes.clone().iter().position(|r| r.ip_address == format!("{}:{}", ipx, port).as_str());
+                            match existing_index {
+                                Some(index) => {
+
+                                    thalamus_x.nodes[index].is_online = false;
+                                    thalamus_x.save();
+                                    log::info!("NODE_OFFLINE: {:?}", thalamus_x.nodes[index].clone());
+                       
+                                    std::mem::drop(thalamus_x);
+                                   
+                                },
+                                None => {
+                                    std::mem::drop(thalamus_x);
+                                }
                             }
                         }
                     }
-                },
-                Err(e) => {
-                    log::error!("nodex_discovery_error: {}", e);
                 }
             }
 
+            // flag missing nodes as offline
+            let mut thalamus_x = thalamus.lock().unwrap();
+            for node in &mut thalamus_x.nodes {
+                let existing_index = xy.ip_addresses.clone().iter().position(|r| node.ip_address.contains(format!("{}", r).as_str()));
+                match existing_index {
+                    Some(_) => {
+
+                    },
+                    None => {
+                        node.is_online = false;
+                    }
+                }
+            }
+            thalamus_x.save();
+            std::mem::drop(thalamus_x);
+            
+
         }
     }
+
+    Ok(discovery)
+}
+
+/// Struct for storing all nodes connected to the client
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ThalamusClient {
+    pub nodes: Vec<ThalamusNode>,
+}
+impl ThalamusClient {
+    pub fn new() -> ThalamusClient {
+        let x: Vec<ThalamusNode> = Vec::new();
+        ThalamusClient { 
+            nodes: x,
+        }
+    }
+
+    // pub fn ipv4_discovery(&mut self){
+
+    //     let network_interfaces = list_afinet_netifas().unwrap();
+
+    //     let nodex = Arc::clone(&self.nodes);
+
+    //     for (name, ip) in network_interfaces.iter() {
+    //         if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":"){
+    //             log::warn!("{}:\t{:?}", name, ip);
+    //             let ips = crate::thalamus::tools::netscan::scan_bulk(format!("{}", ip).as_str(), "8050", "/24").unwrap();
+    //             log::warn!("Found {} ips", ips.len());
+            
+    //             // Check matching ips for thalamus version info
+    //             for ipx in ips{
+    //                 let version = fetch_version(ipx.as_str());
+    //                 match version {
+    //                     Ok(v) => {
+    //                         let mut nodes = nodex.lock().unwrap();
+    //                         let existing_index = nodes.clone().iter().position(|r| r.pid == v.pid.to_string());
+    //                         match existing_index {
+    //                             Some(_index) => {
+    //                             },
+    //                             None => {
+    //                                 nodes.push(ThalamusNode::new(v.pid.to_string(), v.version.to_string(), ipx, 8050));
+    //                             }
+    //                         }
+    //                         std::mem::drop(nodes);
+    //                     },
+    //                     Err(e) => {
+    //                         log::error!("fetch_thalamus_version_error: {}", e);
+    //                     }
+    //                 }
+    //             }
+                
+    //         }
+           
+    //     }
+
+
+        
+    // }
+
+
+
+
 
     pub fn save(&self){
         std::fs::File::create("/opt/thalamusc/clients.json").expect("create failed");
         let j = serde_json::to_string(&self).unwrap();
         std::fs::write("/opt/thalamusc/clients.json", j).expect("Unable to write file");
 
-
-        let nodex = self.nodes.lock().unwrap();
-        let nodes = nodex.clone();
-        std::mem::drop(nodex);
-        if nodes.len() > 0 {
+        if self.nodes.len() > 0 {
             std::fs::File::create("/opt/thalamusc/clients.bak.json").expect("create failed");
             let j = serde_json::to_string(&self).unwrap();
             std::fs::write("/opt/thalamusc/clients.bak.json", j).expect("Unable to write file");
@@ -285,10 +302,6 @@ impl ThalamusClient {
     //     let nodes = nodex.clone();
     //     std::mem::drop(nodex);
 
-    //     let mut fastest_whisper_stt_score = 9999999;
-    //     let mut fastest_whisper_vwav_score = 9999999;
-    //     let mut fastest_srgan_score = 9999999;
-    //     let mut fastest_llama_score = 9999999;
     //     let mut selected_node = nodes[0].clone();
     //     for node in nodes {
     //         let stats = node.stats.clone();
@@ -360,6 +373,23 @@ impl ThalamusNode {
         return node;
     }
 
+    pub fn newq(pid: String, version: String, ip_address: String, port: u16) -> ThalamusNode {
+        let jobs: Vec<ThalamusNodeJob> = Vec::new();
+        let mut node = ThalamusNode { 
+            pid: pid,
+            ip_address: ip_address,
+            jobs: jobs,
+            version: version,
+            port: port,
+            last_ping: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64,
+            stats: ThalamusNodeStats::new(),
+            is_online: true,
+        };
+        let stats = ThalamusNodeStats::new();
+        node.stats = stats;
+        return node;
+    }
+
     pub fn whisper_stt_tiny(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "tiny").file("speech", tmp_file_path.as_str())?;
 
@@ -411,6 +441,14 @@ impl ThalamusNode {
 
         return Ok(bytes.to_vec());
     }
+
+    pub fn set_online(&mut self) {
+       self.is_online = true;
+    }
+
+    pub fn set_offline(&mut self) {
+        self.is_online = false;
+     }
 
     pub fn whisper_vwav_base(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
         let form = reqwest::blocking::multipart::Form::new().text("method", "base").file("speech", tmp_file_path.as_str())?;

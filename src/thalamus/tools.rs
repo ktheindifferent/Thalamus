@@ -527,8 +527,6 @@ pub fn llama(model: &str, prompt: &str) -> Result<String>{
     let child = Command::new("/opt/thalamus/bin/llama")
     .arg("-m")
     .arg(format!("/opt/thalamus/models/llama/{}/ggml-model-q4_0.bin", model))
-    .arg("-n")
-    .arg("256")
     .arg("-p")
     .arg(format!("\"{}\"", prompt))
     .stdout(Stdio::piped())

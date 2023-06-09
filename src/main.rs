@@ -20,10 +20,6 @@
 // - publish 0.0.1
 
 // TODO (0.0.2):
-// - Fix mdns responder first boot work bug
-
-
-
 // - capablities framework for nodes
 // - apple natice TTS support?
 // - deepspeech TTS support?
@@ -59,6 +55,8 @@ use tokio::task::yield_now;
 use simple_dns::{Name, CLASS, ResourceRecord, rdata::{RData, A, SRV}};
 use simple_mdns::sync_discovery::SimpleMdnsResponder;
 use std::{net::IpAddr};
+use std::sync::Arc;
+use std::sync::Mutex;
 use local_ip_address::list_afinet_netifas;
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
@@ -105,10 +103,8 @@ async fn main() {
 
 
     // // Setup Thalamus Client
-    // let mut thalamus = thalamus::ThalamusClient::load(0).unwrap();
+    let mut thalamus = Arc::new(Mutex::new(thalamus::ThalamusClient::load(0).unwrap()));
     
-    // // Respond to mDNS queries with thalamus service information
-    // thalamus.start_mdns_responder().await;
 
 
 
@@ -118,16 +114,14 @@ async fn main() {
     });
 
 
-
-    let discovery_server = task::spawn(async {
+    let thalamus_discovery_thc = Arc::clone(&thalamus);
+    let discovery_server = task::spawn(async move{
         
         let mut discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
         let mut i = 0;
         loop{
-            let mut thalamus = thalamus::ThalamusClient::load(0).unwrap();
-
-            discoverx = thalamus.mdns_discovery(discoverx).await.unwrap();
-            thalamus.nodex_discovery().await;
+            discoverx = thalamus::mdns_discovery(Arc::clone(&thalamus_discovery_thc), discoverx).await.unwrap();
+            thalamus::nodex_discovery(Arc::clone(&thalamus_discovery_thc)).await;
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             i += 1;
             if i > 10 {
@@ -147,7 +141,7 @@ async fn main() {
             responder.clear();
         
             for (_name, ip) in network_interfaces.iter() {
-                if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).contains(".0.1"){
+                if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).ends_with(".0.1"){
                     match *ip {
                         IpAddr::V4(ipv4) => { 
                             responder.add_resource(ResourceRecord::new(
@@ -201,7 +195,7 @@ async fn main() {
                                 return Response::empty_404();
                             }
                         }
-                    }).unwrap().pool_size(3);
+                    }).unwrap().pool_size(6);
                 
                     loop {
                         server.poll();
