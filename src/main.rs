@@ -14,7 +14,7 @@
 // - apple native TTS support? 
 // - Google TTS support?
 // - Amazon TTS support?
-// - Configurable web pool size, port, etc. (WIP)
+// - Configurable web pool size, port, etc. (DONE)
 // - Automatic updates
 // - Nural Style Transfer (WIP)
 // - Encrypted wav/response support
@@ -25,7 +25,6 @@
 // - Clear local jobs and inform p2p network to clear them on server boot
 // - Update p2p network with new jobs as they are created and completed
 // - Use job to wrap calculate_stats, nodex, llama, stt, etc.
-// - Limit the number of concurant jobs based on job_type
 
 // Feature List
 // - TTS speech synthesis using OpenTTS
@@ -51,9 +50,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use local_ip_address::list_afinet_netifas;
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
-
-use simple_logger::SimpleLogger;
-use std::path::Path;
 use clap::Parser;
 
 #[tokio::main]
@@ -64,17 +60,6 @@ async fn main() {
     sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
     simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
 
-
-    // if Path::new("/opt/thalamus/").exists() {
-    //     let touch_status = thalamus::thalamus::tools::touch("/opt/thalamus/output.log".to_string());
-    //     if touch_status.is_ok() {
-    //         SimpleLogger::new().with_colors(true).with_timestamps(true).with_output_file("/opt/thalamus/output.log".to_string()).init().unwrap();
-    //     } else {
-    //         SimpleLogger::new().with_colors(true).with_timestamps(true).init().unwrap();
-    //     }
-    // } else {
-    //     simple_logger::SimpleLogger::new().with_colors(true).with_timestamps(true).init().unwrap();
-    // }
 
 
 

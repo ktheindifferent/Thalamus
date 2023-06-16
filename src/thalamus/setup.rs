@@ -388,7 +388,7 @@ pub fn install_service(args: crate::Args) -> Result<()> {
     Ok(())
 }
 
-pub fn update_osx_service_file(args: crate::Args){
+pub fn update_osx_service_file(_args: crate::Args){
     let mut data = String::new();
     data.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     data.push_str("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n");

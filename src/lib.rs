@@ -169,7 +169,7 @@ pub async fn mdns_discovery(thalamus: Arc<Mutex<ThalamusClient>>, discovery: sim
             std::mem::drop(thalamus_x);
 
 
-            /// flag missing nodes as offline
+            // flag missing nodes as offline
             // TODO: fetch fresh stats and reaverage them, and check for missing capabilities based on stats
             let thalamus_x = thalamus.lock().unwrap();
             let thx = thalamus_x.clone();
@@ -594,7 +594,7 @@ impl ThalamusNode {
         let node_c = self.clone();
         let _t = thread::spawn(move || {
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-            let tts = node_c.tts(format!("hello, my name is sam."), format!("coqui-tts:en_ljspeech"), format!("opensamfoundation")).unwrap();
+            let _tts = node_c.tts(format!("hello, my name is sam."), format!("coqui-tts:en_ljspeech"), format!("opensamfoundation")).unwrap();
             let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             let time_elapsed = Some(end_timestamp - start_timestamp);
 

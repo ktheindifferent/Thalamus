@@ -9,8 +9,8 @@
 
 use rouille::Request;
 use rouille::Response;
-use rouille::post_input;
-use std::path::Path;
+
+
 use serde::{Serialize, Deserialize};
 
 use std::thread;
@@ -18,7 +18,7 @@ use std::time::Duration;
 
 use std::process::{Command, Stdio};
 
-use std::{io, fs};
+
 
 // http://localhost:8050/api/services/tts?text=hello%20there%20human&primary=larynx:southern_english_female-glow_tts&fallback=opensamfoundation
 pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Error> {
@@ -111,6 +111,11 @@ pub fn init(args: crate::Args){
 
 pub fn get(text: String, primary: &str, fallback: &str) -> Result<Vec<u8>, crate::thalamus::services::Error> {
     let mut primary_had_error = false;
+
+    if primary_had_error{
+        log::error!("this should never happen");
+    }
+
     match primary {
         "opensamfoundation" => {
             match fetch_opensam(text.clone()) {
