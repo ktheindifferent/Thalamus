@@ -7,7 +7,7 @@
 // Developed by Caleb Mitchell Smith (PixelCoda)
 // Licensed under GPLv3....see LICENSE file.
 
-use local_ip_address::list_afinet_netifas;
+// use local_ip_address::list_afinet_netifas;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use serde::{Serialize, Deserialize};
@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 
-use tokio::task;
+// use tokio::task;
 use std::thread;
 use std::sync::mpsc;
 
@@ -26,7 +26,25 @@ extern crate rouille;
 pub mod thalamus;
 pub mod p2p;
 
+use clap::Parser;
 
+/// Simple program to greet a person
+#[derive(Parser, Debug, Clone)]
+#[command(author, version, about, long_about = None)]
+pub struct Args {
+    #[arg(short, long, default_value = "en")]
+    pub lang: String,
+    #[arg(short, long, default_value_t = 6)]
+    pub max_threads: u8,
+    #[arg(short, long, default_value_t = 8050)]
+    pub http_port: u16,
+    #[arg(short, long, default_value_t = 62649)]
+    pub p2p_port: u16,
+    #[arg(short, long, default_value_t = false)]
+    pub encrypt: bool,
+    #[arg(short, long, default_value = "thalamus")]
+    pub key: String,
+}
 
 pub async fn nodex_discovery(thalamus: Arc<Mutex<ThalamusClient>>){
     
@@ -71,8 +89,8 @@ pub async fn mdns_discovery(thalamus: Arc<Mutex<ThalamusClient>>, discovery: sim
             for ipfx in xy.ip_addresses.clone(){
                 let ipx = ipfx.to_string();
                 let port = xy.ports[0];
-                if !ipx.to_string().ends_with(".0.1"){
-                    let version = async_fetch_version(format!("{}:{}", ipx, port).as_str()).await;
+                if !ipx.to_string().ends_with(".1"){
+                    let version = async_fetch_version(ipx.as_str(), port).await;
                     match version {
                         Ok(v) => {
                             let mut thalamus_x = thalamus.lock().unwrap();
@@ -95,35 +113,15 @@ pub async fn mdns_discovery(thalamus: Arc<Mutex<ThalamusClient>>, discovery: sim
                                     let v_thc = v.clone();
                                
                                         
-                                    let thalamus_node = ThalamusNode::newq(v_thc.pid.to_string(), v_thc.version.to_string(), format!("{}:{}", ipx, port), 8050);
+                                    let thalamus_node = ThalamusNode::new(v_thc.pid.to_string(), v_thc.version.to_string(), ipx.clone(), port);
                                     log::info!("NEW_NODE: {:?}", thalamus_node.clone());
                                     thalamus_x.nodes.push(thalamus_node);
-                                    
-    
                                     thalamus_x.save();
                                     std::mem::drop(thalamus_x);
 
-                                    // Calculate Stats
-                                    let node_thc = Arc::clone(&thalamus);
-                                    std::thread::spawn(move || {
-
-                                        let node_ref = ThalamusNode::newq(v_thc.pid.to_string(), v_thc.version.to_string(), format!("{}:{}", ipx, port), 8050);
-                                        let stats = ThalamusNodeStats::calculate(node_ref.clone());
-
-                                        let mut thalamus_x = node_thc.lock().unwrap();
-                            
-                                        for node in &mut thalamus_x.nodes{
-                                            if node.pid == v_thc.pid.to_string(){
-                                                node.stats = stats.clone();
-                                            }
-                                        }
-                                   
-    
-                                        thalamus_x.save();
-                                        std::mem::drop(thalamus_x);
+                                    calc_stats(Arc::clone(&thalamus), v_thc.pid.to_string(), v_thc.version.to_string(), ipx.clone(), port);
                                     
-                                    });
-                                 
+                        
                                 }
                             }
                             
@@ -156,6 +154,7 @@ pub async fn mdns_discovery(thalamus: Arc<Mutex<ThalamusClient>>, discovery: sim
             // flag missing nodes as offline
             let mut thalamus_x = thalamus.lock().unwrap();
             for node in &mut thalamus_x.nodes {
+
                 let existing_index = xy.ip_addresses.clone().iter().position(|r| node.ip_address.contains(format!("{}", r).as_str()));
                 match existing_index {
                     Some(_) => {
@@ -168,6 +167,19 @@ pub async fn mdns_discovery(thalamus: Arc<Mutex<ThalamusClient>>, discovery: sim
             }
             thalamus_x.save();
             std::mem::drop(thalamus_x);
+
+
+            /// flag missing nodes as offline
+            // TODO: fetch fresh stats and reaverage them, and check for missing capabilities based on stats
+            let thalamus_x = thalamus.lock().unwrap();
+            let thx = thalamus_x.clone();
+            std::mem::drop(thalamus_x);
+            for node in thx.nodes {
+                if !node.jobs.iter().any(|i| i.job_identifier=="calculate_stats") && node.stats.whisper_stt_tiny.is_none(){
+                    log::warn!("STATS ARE MISSING FOR NODE: {:?}.....CALCULATING NOW...", node.pid.clone());
+                    calc_stats(Arc::clone(&thalamus), node.pid.to_string(), node.version.to_string(), format!("{}", node.ip_address), node.port);
+                }
+            }
             
 
         }
@@ -175,6 +187,42 @@ pub async fn mdns_discovery(thalamus: Arc<Mutex<ThalamusClient>>, discovery: sim
 
     Ok(discovery)
 }
+
+pub fn calc_stats(thalamus: Arc<Mutex<ThalamusClient>>, pid: String, version: String, ipx: String, port: u16){
+    // Calculate Stats for new node
+    let node_thc = Arc::clone(&thalamus);
+    std::thread::spawn(move || {
+
+        // Commit job to memory
+        let job = ThalamusNodeJob::new("calculate_stats".to_string());
+        let mut thalamus_x = node_thc.lock().unwrap();
+        for node in &mut thalamus_x.nodes{
+            if node.pid == pid.to_string(){
+                node.jobs.push(job.clone());
+            }
+        }
+        thalamus_x.save();
+        std::mem::drop(thalamus_x);
+
+        // Generate stats using dummy node data
+        let node_ref = ThalamusNode::new(pid.to_string(), version.to_string(), ipx, port);
+        let stats = ThalamusNodeStats::calculate(node_ref.clone());
+
+        // Commit stats to memory
+        let mut thalamus_x = node_thc.lock().unwrap();
+        for node in &mut thalamus_x.nodes{
+            if node.pid == pid.to_string(){
+                node.stats = stats.clone();
+                let index = node.jobs.iter().position(|x| *x.oid == job.oid.to_string() || *x.job_identifier == format!("calculate_stats")).unwrap();
+                node.jobs.remove(index);
+            }
+        }
+        thalamus_x.save();
+        std::mem::drop(thalamus_x);
+    
+    });
+}
+
 
 /// Struct for storing all nodes connected to the client
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -236,26 +284,26 @@ impl ThalamusClient {
 
 
     pub fn save(&self){
-        std::fs::File::create("/opt/thalamusc/clients.json").expect("create failed");
+        std::fs::File::create("/opt/thalamus/clients.json").expect("create failed");
         let j = serde_json::to_string(&self).unwrap();
-        std::fs::write("/opt/thalamusc/clients.json", j).expect("Unable to write file");
+        std::fs::write("/opt/thalamus/clients.json", j).expect("Unable to write file");
 
         if self.nodes.len() > 0 {
-            std::fs::File::create("/opt/thalamusc/clients.bak.json").expect("create failed");
+            std::fs::File::create("/opt/thalamus/clients.bak.json").expect("create failed");
             let j = serde_json::to_string(&self).unwrap();
-            std::fs::write("/opt/thalamusc/clients.bak.json", j).expect("Unable to write file");
+            std::fs::write("/opt/thalamus/clients.bak.json", j).expect("Unable to write file");
         }
     }
 
     pub fn load(retries: i64) -> Result<ThalamusClient, Box<dyn Error>>{
 
-        if !std::path::Path::new("/opt/thalamusc/clients.json").exists(){
+        if !std::path::Path::new("/opt/thalamus/clients.json").exists(){
             let new_c = ThalamusClient::new();
             new_c.save();
             return Ok(new_c);
         }
 
-        let save_file = std::fs::read_to_string("/opt/thalamusc/clients.json");
+        let save_file = std::fs::read_to_string("/opt/thalamus/clients.json");
         match save_file {
             Ok(save_data) => {
                 let v: Result<ThalamusClient, _> = serde_json::from_str(&save_data);
@@ -267,7 +315,7 @@ impl ThalamusClient {
                         log::error!("{}", format!("Unable to parse save file: {}", e));
                         
                         if retries < 10 {
-                            std::fs::copy("/opt/thalamusc/clients.bak.json", "/opt/thalamusc/clients.json")?;
+                            std::fs::copy("/opt/thalamus/clients.bak.json", "/opt/thalamus/clients.json")?;
                             std::thread::sleep(std::time::Duration::from_secs(2));
                             return Self::load(retries + 1);
                         } else {
@@ -284,7 +332,7 @@ impl ThalamusClient {
             Err(e) => {
                 log::error!("{}", format!("Unable to read save file: {}", e));
                 if retries < 10 {
-                    std::fs::copy("/opt/thalamusc/clients.bak.json", "/opt/thalamusc/clients.json")?;
+                    std::fs::copy("/opt/thalamus/clients.bak.json", "/opt/thalamus/clients.json")?;
                     std::thread::sleep(std::time::Duration::from_secs(2));
                     return Self::load(retries + 1);
                 } else {
@@ -329,14 +377,14 @@ impl ThalamusClient {
 
 
 
-pub fn fetch_version(host: &str) -> Result<VersionReply, Box<dyn Error>> {
+pub fn fetch_version(host: &str, port: u16) -> Result<VersionReply, Box<dyn Error>> {
     let client = reqwest::blocking::Client::builder().build()?;
-    return Ok(client.get(format!("http://{}/api/thalamus/version", host)).send()?.json()?);
+    return Ok(client.get(format!("http://{}:{}/api/thalamus/version", host, port.clone())).send()?.json()?);
 }
 
-pub async fn async_fetch_version(host: &str) -> Result<VersionReply, Box<dyn Error>> {
+pub async fn async_fetch_version(host: &str, port: u16) -> Result<VersionReply, Box<dyn Error>> {
     let client = reqwest::Client::builder().build()?;
-    return Ok(client.get(format!("http://{}/api/thalamus/version", host)).send().await?.json().await?);
+    return Ok(client.get(format!("http://{}:{}/api/thalamus/version", host, port.clone())).send().await?.json().await?);
 }
 
 
@@ -351,11 +399,13 @@ pub struct ThalamusNode {
     pub version: String,
     pub port: u16,
     pub jobs: Vec<ThalamusNodeJob>,
+    pub capablities: Option<Vec<ThalamusNodeCapability>>,
     pub last_ping: i64,
     pub stats: ThalamusNodeStats,
     pub is_online: bool,
 }
 impl ThalamusNode {
+
     pub fn new(pid: String, version: String, ip_address: String, port: u16) -> ThalamusNode {
         let jobs: Vec<ThalamusNodeJob> = Vec::new();
         let mut node = ThalamusNode { 
@@ -363,23 +413,7 @@ impl ThalamusNode {
             ip_address: ip_address,
             jobs: jobs,
             version: version,
-            port: port,
-            last_ping: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64,
-            stats: ThalamusNodeStats::new(),
-            is_online: true,
-        };
-        let stats = ThalamusNodeStats::calculate(node.clone());
-        node.stats = stats;
-        return node;
-    }
-
-    pub fn newq(pid: String, version: String, ip_address: String, port: u16) -> ThalamusNode {
-        let jobs: Vec<ThalamusNodeJob> = Vec::new();
-        let mut node = ThalamusNode { 
-            pid: pid,
-            ip_address: ip_address,
-            jobs: jobs,
-            version: version,
+            capablities: None,
             port: port,
             last_ping: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64,
             stats: ThalamusNodeStats::new(),
@@ -395,7 +429,7 @@ impl ThalamusNode {
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        return Ok(client.post(format!("http://{}/api/services/whisper", self.ip_address.clone()))
+        return Ok(client.post(format!("http://{}:{}/api/services/whisper", self.ip_address.clone(), self.port.clone()))
         .multipart(form)
         .send()?.json()?);
     }
@@ -405,7 +439,7 @@ impl ThalamusNode {
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        return Ok(client.post(format!("http://{}/api/services/whisper", self.ip_address.clone()))
+        return Ok(client.post(format!("http://{}:{}/api/services/whisper", self.ip_address.clone(), self.port.clone()))
         .multipart(form)
         .send()?.json()?);
     }
@@ -415,7 +449,7 @@ impl ThalamusNode {
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        return Ok(client.post(format!("http://{}/api/services/whisper", self.ip_address.clone()))
+        return Ok(client.post(format!("http://{}:{}/api/services/whisper", self.ip_address.clone(), self.port.clone()))
         .multipart(form)
         .send()?.json()?);
     }
@@ -425,37 +459,40 @@ impl ThalamusNode {
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        return Ok(client.post(format!("http://{}/api/services/whisper", self.ip_address.clone()))
+        return Ok(client.post(format!("http://{}:{}/api/services/whisper", self.ip_address.clone(), self.port.clone()))
         .multipart(form)
         .send()?.json()?);
     }
 
     pub fn whisper_vwav_tiny(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+        
+        let url = format!("http://{}:{}/api/services/whisper/vwav", self.ip_address.clone(), self.port.clone());
+
+        log::info!("Fetching VWAV from {}", url);
+        
         let form = reqwest::blocking::multipart::Form::new().text("method", "tiny").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        let bytes = client.post(format!("http://{}/api/services/whisper/vwav", self.ip_address.clone()))
+        let bytes = client.post(url)
         .multipart(form)
         .send()?.bytes()?;
 
         return Ok(bytes.to_vec());
     }
 
-    pub fn set_online(&mut self) {
-       self.is_online = true;
-    }
-
-    pub fn set_offline(&mut self) {
-        self.is_online = false;
-     }
-
     pub fn whisper_vwav_base(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+                
+        let url = format!("http://{}:{}/api/services/whisper/vwav", self.ip_address.clone(), self.port.clone());
+
+        log::info!("Fetching VWAV from {}", url);
+        
+        
         let form = reqwest::blocking::multipart::Form::new().text("method", "base").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        let bytes = client.post(format!("http://{}/api/services/whisper/vwav", self.ip_address.clone()))
+        let bytes = client.post(url)
         .multipart(form)
         .send()?.bytes()?;
 
@@ -463,11 +500,15 @@ impl ThalamusNode {
     }
 
     pub fn whisper_vwav_medium(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+        let url = format!("http://{}:{}/api/services/whisper/vwav", self.ip_address.clone(), self.port.clone());
+
+        log::info!("Fetching VWAV from {}", url);
+        
         let form = reqwest::blocking::multipart::Form::new().text("method", "medium").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        let bytes = client.post(format!("http://{}/api/services/whisper/vwav", self.ip_address.clone()))
+        let bytes = client.post(url)
         .multipart(form)
         .send()?.bytes()?;
 
@@ -475,11 +516,15 @@ impl ThalamusNode {
     }
 
     pub fn whisper_vwav_large(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+        let url = format!("http://{}:{}/api/services/whisper/vwav", self.ip_address.clone(), self.port.clone());
+
+        log::info!("Fetching VWAV from {}", url);
+        
         let form = reqwest::blocking::multipart::Form::new().text("method", "large").file("speech", tmp_file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        let bytes = client.post(format!("http://{}/api/services/whisper/vwav", self.ip_address.clone()))
+        let bytes = client.post(url)
         .multipart(form)
         .send()?.bytes()?;
 
@@ -500,7 +545,7 @@ impl ThalamusNode {
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        let bytes = client.post(format!("http://{}/api/services/image/srgan", self.ip_address.clone()))
+        let bytes = client.post(format!("http://{}:{}/api/services/image/srgan", self.ip_address.clone(), self.port.clone()))
         .multipart(form)
         .send()?.bytes()?;
 
@@ -512,19 +557,19 @@ impl ThalamusNode {
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        let bytes = client.post(format!("http://{}/api/services/llama", self.ip_address.clone()))
+        let bytes = client.post(format!("http://{}:{}/api/services/llama", self.ip_address.clone(), self.port.clone()))
         .form(&params)
         .send()?.text()?;
 
         return Ok(bytes.to_string());
     }
 
-    pub fn tts(&self, prompt: String) -> Result<Vec<u8>, Box<dyn Error>>{
-        let params = [("prompt", prompt.as_str())];
+    pub fn tts(&self, prompt: String, primary: String, fallback: String) -> Result<Vec<u8>, Box<dyn Error>>{
+        let params = [("text", prompt.as_str()), ("primary", primary.as_str()), ("fallback", fallback.as_str())];
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        let bytes = client.post(format!("http://{}/api/services/tts", self.ip_address.clone()))
+        let bytes = client.post(format!("http://{}:{}/api/services/tts", self.ip_address.clone(), self.port.clone()))
         .form(&params)
         .send()?.bytes()?;
 
@@ -534,7 +579,7 @@ impl ThalamusNode {
     pub fn nodex(&self) -> Result<Vec<ThalamusNode>, Box<dyn Error>>{
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
-        let mut url = format!("http://{}/api/nodex", self.ip_address.clone());
+        let mut url = format!("http://{}:{}/api/nodex", self.ip_address.clone(), self.port.clone());
         if !url.contains(":") {
             url = format!("{}:{}", url, self.port.clone());
         }
@@ -543,13 +588,31 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
+    pub fn test_tts(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
+        log::info!("{}: Running TTS test...", self.pid);
+        let (sender, receiver) = mpsc::channel();
+        let node_c = self.clone();
+        let _t = thread::spawn(move || {
+            let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let tts = node_c.tts(format!("hello, my name is sam."), format!("coqui-tts:en_ljspeech"), format!("opensamfoundation")).unwrap();
+            let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let time_elapsed = Some(end_timestamp - start_timestamp);
+
+            match sender.send(time_elapsed) {
+                Ok(()) => {}, // everything good
+                Err(_) => {}, // we have been released, don't panic
+            }
+        });
+        return receiver.recv_timeout(std::time::Duration::from_millis(100));
+    }
+
     pub fn test_srgan(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
         log::info!("{}: Running SRGAN test...", self.pid);
         let (sender, receiver) = mpsc::channel();
         let node_c = self.clone();
         let _t = thread::spawn(move || {
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-            let _srgan = node_c.srgan("/opt/thalamusc/test.jpg".to_string()).unwrap();
+            let _srgan = node_c.srgan("/opt/thalamus/test.jpg".to_string()).unwrap();
             let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             let time_elapsed = Some(end_timestamp - start_timestamp);
 
@@ -586,16 +649,16 @@ impl ThalamusNode {
         let _t = thread::spawn(move || {
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             if model == "tiny".to_string() {
-                let _stt = node_c.whisper_stt_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
+                let _stt = node_c.whisper_stt_tiny("/opt/thalamus/test.wav".to_string()).unwrap();
             }
             if model == "base".to_string() {
-                let _stt = node_c.whisper_stt_base("/opt/thalamusc/test.wav".to_string()).unwrap();
+                let _stt = node_c.whisper_stt_base("/opt/thalamus/test.wav".to_string()).unwrap();
             }
             if model == "medium".to_string() {
-                let _stt = node_c.whisper_stt_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
+                let _stt = node_c.whisper_stt_medium("/opt/thalamus/test.wav".to_string()).unwrap();
             }
             if model == "large".to_string() {
-                let _stt = node_c.whisper_stt_large("/opt/thalamusc/test.wav".to_string()).unwrap();
+                let _stt = node_c.whisper_stt_large("/opt/thalamus/test.wav".to_string()).unwrap();
             } 
            
             let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
@@ -616,16 +679,16 @@ impl ThalamusNode {
         let _t = thread::spawn(move || {
             let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
             if model == "tiny".to_string() {
-                let _stt = node_c.whisper_vwav_tiny("/opt/thalamusc/test.wav".to_string()).unwrap();
+                let _stt = node_c.whisper_vwav_tiny("/opt/thalamus/test.wav".to_string()).unwrap();
             }
             if model == "base".to_string() {
-                let _stt = node_c.whisper_vwav_base("/opt/thalamusc/test.wav".to_string()).unwrap();
+                let _stt = node_c.whisper_vwav_base("/opt/thalamus/test.wav".to_string()).unwrap();
             }
             if model == "medium".to_string() {
-                let _stt = node_c.whisper_vwav_medium("/opt/thalamusc/test.wav".to_string()).unwrap();
+                let _stt = node_c.whisper_vwav_medium("/opt/thalamus/test.wav".to_string()).unwrap();
             }
             if model == "large".to_string() {
-                let _stt = node_c.whisper_vwav_large("/opt/thalamusc/test.wav".to_string()).unwrap();
+                let _stt = node_c.whisper_vwav_large("/opt/thalamus/test.wav".to_string()).unwrap();
             } 
            
             let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
@@ -644,15 +707,21 @@ impl ThalamusNode {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThalamusNodeJob {
     pub oid: String,
-    pub url: String,
+    pub job_identifier: String,
+    pub url: Option<String>,
+    pub status: Option<String>,
+    pub progress: Option<f64>,
     pub started_at: i64,
 }
 impl ThalamusNodeJob {
-    pub fn new() -> ThalamusNodeJob {
+    pub fn new(job_identifier: String) -> ThalamusNodeJob {
         let oid: String = thread_rng().sample_iter(&Alphanumeric).take(15).map(char::from).collect();
         ThalamusNodeJob { 
             oid: oid,
-            url: String::new(),
+            job_identifier: job_identifier,
+            url: None,
+            status: None,
+            progress: None,
             started_at: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64,
         }
     }
@@ -661,11 +730,6 @@ impl ThalamusNodeJob {
 /// Struct for storing the stats of each node
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThalamusNodeStats {
-    pub apple_tts: Option<i64>,
-    pub bark_tts: Option<i64>,
-    pub deepspeech_tts: Option<i64>,
-    pub espeak_tts: Option<i64>,
-    pub watson_tts: Option<i64>,
     pub tts_score: Option<i64>,
     pub llama_7b: Option<i64>,
     pub llama_13b: Option<i64>,
@@ -704,11 +768,6 @@ impl ThalamusNodeStats {
             whisper_vwav_large: None,
             whisper_vwav_score: None, 
             srgan_score: None,
-            espeak_tts: None,
-            apple_tts: None,
-            bark_tts: None,
-            watson_tts: None,
-            deepspeech_tts: None,
             tts_score: None,
             nst_score: None
         }
@@ -899,10 +958,6 @@ impl ThalamusNodeStats {
             final_vwav_score = Some(vwav_score);
         }
 
-
-
-        // let whisper_vwav_score = (whisper_vwav_tiny + whisper_vwav_base + whisper_vwav_medium + whisper_vwav_large) / 4;
-
         // Test LLAMA 7B
         let mut llama_7b: Option<i64> = None;
         let llama_7b_test = node.test_llama("7B".to_string());
@@ -916,50 +971,50 @@ impl ThalamusNodeStats {
         }
         log::info!("{}: LLAMA 7B test complete in {:?} miliseconds", node.pid, llama_7b);
 
-        // Test LLAMA 13B
-        let mut llama_13b: Option<i64> = None;
-        if llama_7b.is_some(){
-            let llama_13b_test = node.test_llama("13B".to_string());
-            match llama_13b_test {
-                Ok(time_elapsed) => {
-                    llama_13b = time_elapsed;
-                },
-                Err(e) => {
-                    log::error!("{}: Error running Llama 13B test: {:?}", node.pid, e);
-                }
-            }
-            log::info!("{}: LLAMA 13B test complete in {:?} miliseconds", node.pid, llama_13b);    
-        }
+        // // Test LLAMA 13B
+        // let mut llama_13b: Option<i64> = None;
+        // if llama_7b.is_some(){
+        //     let llama_13b_test = node.test_llama("13B".to_string());
+        //     match llama_13b_test {
+        //         Ok(time_elapsed) => {
+        //             llama_13b = time_elapsed;
+        //         },
+        //         Err(e) => {
+        //             log::error!("{}: Error running Llama 13B test: {:?}", node.pid, e);
+        //         }
+        //     }
+        //     log::info!("{}: LLAMA 13B test complete in {:?} miliseconds", node.pid, llama_13b);    
+        // }
 
-        // Test LLAMA 30B
-        let mut llama_30b: Option<i64> = None;
-        if llama_13b.is_some(){
-            let llama_30b_test = node.test_llama("30B".to_string());
-            match llama_30b_test {
-                Ok(time_elapsed) => {
-                    llama_30b = time_elapsed;
-                },
-                Err(e) => {
-                    log::error!("{}: Error running Llama 30B test: {:?}", node.pid, e);
-                }
-            }
-            log::info!("{}: LLAMA 30B test complete in {:?} miliseconds", node.pid, llama_30b);
-        }
+        // // Test LLAMA 30B
+        // let mut llama_30b: Option<i64> = None;
+        // if llama_13b.is_some(){
+        //     let llama_30b_test = node.test_llama("30B".to_string());
+        //     match llama_30b_test {
+        //         Ok(time_elapsed) => {
+        //             llama_30b = time_elapsed;
+        //         },
+        //         Err(e) => {
+        //             log::error!("{}: Error running Llama 30B test: {:?}", node.pid, e);
+        //         }
+        //     }
+        //     log::info!("{}: LLAMA 30B test complete in {:?} miliseconds", node.pid, llama_30b);
+        // }
 
-        // Test LLAMA 65B
-        let mut llama_65b: Option<i64> = None;
-        if llama_30b.is_some(){
-            let llama_65b_test = node.test_llama("65B".to_string());
-            match llama_65b_test {
-                Ok(time_elapsed) => {
-                    llama_65b = time_elapsed;
-                },
-                Err(e) => {
-                    log::error!("{}: Error running Llama 65B test: {:?}", node.pid, e);
-                }
-            }
-            log::info!("{}: LLAMA 65B test complete in {:?} miliseconds", node.pid, llama_65b);
-        }
+        // // Test LLAMA 65B
+        // let mut llama_65b: Option<i64> = None;
+        // if llama_30b.is_some(){
+        //     let llama_65b_test = node.test_llama("65B".to_string());
+        //     match llama_65b_test {
+        //         Ok(time_elapsed) => {
+        //             llama_65b = time_elapsed;
+        //         },
+        //         Err(e) => {
+        //             log::error!("{}: Error running Llama 65B test: {:?}", node.pid, e);
+        //         }
+        //     }
+        //     log::info!("{}: LLAMA 65B test complete in {:?} miliseconds", node.pid, llama_65b);
+        // }
 
         // Calculate average llama score
         let mut llama_score = 0;
@@ -969,24 +1024,24 @@ impl ThalamusNodeStats {
             },
             None => {}
         }
-        match llama_13b {
-            Some(llama_13bx) => {
-                llama_score  = llama_score + llama_13bx / 2;
-            },
-            None => {}
-        }
-        match llama_30b {
-            Some(llama_30bx) => {
-                llama_score  = llama_score + llama_30bx / 2;
-            },
-            None => {}
-        }
-        match llama_65b {
-            Some(llama_65bx) => {
-                llama_score  = llama_score + llama_65bx / 2;
-            },
-            None => {}
-        }
+        // match llama_13b {
+        //     Some(llama_13bx) => {
+        //         llama_score  = llama_score + llama_13bx / 2;
+        //     },
+        //     None => {}
+        // }
+        // match llama_30b {
+        //     Some(llama_30bx) => {
+        //         llama_score  = llama_score + llama_30bx / 2;
+        //     },
+        //     None => {}
+        // }
+        // match llama_65b {
+        //     Some(llama_65bx) => {
+        //         llama_score  = llama_score + llama_65bx / 2;
+        //     },
+        //     None => {}
+        // }
 
         let mut final_llama_score: Option<i64> = None;
         if llama_score > 0 {
@@ -1006,6 +1061,21 @@ impl ThalamusNodeStats {
         }
         log::info!("{}: SRGAN test complete in {:?} miliseconds", node.pid, srgan);
 
+        // Test TTS
+        let mut tts: Option<i64> = None;
+        let tts_test = node.test_tts();
+        match tts_test {
+            Ok(time_elapsed) => {
+                tts = time_elapsed;
+            },
+            Err(e) => {
+                log::error!("{}: Error running TTS test: {:?}", node.pid, e);
+            }
+        }
+        log::info!("{}: TTS test complete in {:?} miliseconds", node.pid, tts);
+
+        
+
         // Return stats
         return ThalamusNodeStats { 
             whisper_stt_tiny: whisper_stt_tiny,
@@ -1014,9 +1084,9 @@ impl ThalamusNodeStats {
             whisper_stt_large: whisper_stt_large,
             whisper_stt_score: final_stt_score,
             llama_7b: llama_7b,
-            llama_13b: llama_13b,
-            llama_30b: llama_30b,
-            llama_65b: llama_65b,
+            llama_13b: None,
+            llama_30b: None,
+            llama_65b: None,
             llama_score: final_llama_score,
             whisper_vwav_tiny: whisper_vwav_tiny,
             whisper_vwav_base: whisper_vwav_base,
@@ -1024,15 +1094,16 @@ impl ThalamusNodeStats {
             whisper_vwav_large: whisper_vwav_large,
             whisper_vwav_score: final_vwav_score, 
             srgan_score: srgan,
-            espeak_tts: None,
-            apple_tts: None,
-            bark_tts: None,
-            watson_tts: None,
-            deepspeech_tts: None,
-            tts_score: None,
+            tts_score: tts,
             nst_score: None
         };
     }
+}
+
+/// Struct for storing the stats of each node
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ThalamusNodeCapability {
+    pub tag: String,
 }
 
 /// Auxilary Struct for API Version replies

@@ -9,6 +9,7 @@
 // pub mod nst;
 pub mod srgan;
 pub mod ocnn;
+pub mod nst;
 
 
 
@@ -40,6 +41,10 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
     
     if request.url().contains("/api/services/image/srgan"){
         return Ok(crate::thalamus::services::image::srgan::handle(request)?);
+    }
+
+    if request.url().contains("/api/services/image/nst"){
+        return Ok(crate::thalamus::services::image::nst::handle(request)?);
     }
 
     return Ok(Response::empty_404());

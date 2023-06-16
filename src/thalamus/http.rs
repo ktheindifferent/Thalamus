@@ -13,7 +13,8 @@
 use rouille::Request;
 use rouille::Response;
 use serde::{Serialize, Deserialize};
-
+use std::sync::Arc;
+use std::sync::Mutex;
 
 // store application version as a const
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
@@ -39,7 +40,7 @@ pub struct VersionHeader {
 }
 
 
-pub fn handle(request: &Request) -> Result<Response> {
+pub fn handle(request: &Request, thalamus: Arc<Mutex<crate::ThalamusClient>>) -> Result<Response> {
 
     if request.url().contains("/api/thalamus/version"){
         let pid = std::fs::read_to_string("/opt/thalamus/pid").expect("Unable to read file");
@@ -51,8 +52,11 @@ pub fn handle(request: &Request) -> Result<Response> {
     }
 
     if request.url().contains("/api/nodex"){
-        let thalamus = crate::ThalamusClient::load(0).unwrap();
-        return Ok(Response::json(&thalamus.nodes));
+        let thalamus_x = thalamus.lock().unwrap();
+        let thx_clone = thalamus_x.clone();
+        std::mem::drop(thalamus_x);
+        
+        return Ok(Response::json(&thx_clone.nodes));
     }
 
     if request.url().contains("/api/services/llama"){
@@ -62,6 +66,11 @@ pub fn handle(request: &Request) -> Result<Response> {
     if request.url().contains("/api/services/whisper"){
         return Ok(crate::thalamus::services::whisper::handle(request)?);
     }
+
+    if request.url().contains("/api/services/tts"){
+        return Ok(crate::thalamus::services::tts::handle(request)?);
+    }
+
 
 
     return Ok(Response::html(format!("<pre> 

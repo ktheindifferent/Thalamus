@@ -3,7 +3,7 @@
 //    ██    ███████ ███████ ██      ███████ ██ ████ ██ ██    ██ ███████ 
 //    ██    ██   ██ ██   ██ ██      ██   ██ ██  ██  ██ ██    ██      ██ 
 //    ██    ██   ██ ██   ██ ███████ ██   ██ ██      ██  ██████  ███████                                                                             
-// Copyright 2021-2023 The Open Sam Foundation (OSF)
+// Copyright 2021-2023 The Open thalamus Foundation (OSF)
 // Developed by Caleb Mitchell Smith (PixelCoda)
 // Licensed under GPLv3....see LICENSE file.
 
@@ -25,6 +25,8 @@ use rouille::post_input;
 use rouille::Request;
 use rouille::Response;
 use std::thread;
+
+use titlecase::titlecase;
 
 
 use std::io::prelude::*;
@@ -48,7 +50,7 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
             nst_style: String, // Fra Angelico, Vincent Van Gogh
         })?;
 
-        let mut selected_style = format!("/opt/sam/models/nst/vincent_van_gogh.jpg");
+        let mut selected_style = format!("/opt/thalamus/models/nst/vincent_van_gogh.jpg");
         for style in styles()?{
             if style.name == input.nst_style.as_str() {
                 selected_style = style.file_path.to_string();
@@ -58,9 +60,9 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
         // file
         if input.image_id.contains("oid:") {
             let oid = input.image_id.replace("oid:", "");
-            if Path::new(format!("/opt/sam/files/{}", oid).as_str()).exists(){
+            if Path::new(format!("/opt/thalamus/files/{}", oid).as_str()).exists(){
                 thread::Builder::new().name("nst_thread".to_string()).spawn(move || {
-                    match run(&selected_style, format!("/opt/sam/files/{}", oid).as_str(), oid, input.nst_style){
+                    match run(&selected_style, format!("/opt/thalamus/files/{}", oid).as_str(), oid, input.nst_style){
                         Ok(_) => (),
                         Err(e) => log::error!("{}", e),
                     }
@@ -97,7 +99,7 @@ pub fn run(style_img: &str, content_img: &str, _oid: String, _style: String) -> 
 
     let mut net_vs = tch::nn::VarStore::new(device);
     let net = vgg::vgg16(&net_vs.root(), imagenet::CLASS_COUNT);
-    net_vs.load("/opt/sam/models/vgg16.ot")?;
+    net_vs.load("/opt/thalamus/models/vgg16.ot")?;
     net_vs.freeze();
 
     let style_img = imagenet::load_image(&style_img)?
@@ -124,17 +126,17 @@ pub fn run(style_img: &str, content_img: &str, _oid: String, _style: String) -> 
             .sum();
         let loss = style_loss * STYLE_WEIGHT + content_loss;
         opt.backward_step(&loss);
-        log::info!("{} {}", step_idx, f64::from(loss.clone(&loss)));
+        // log::info!("{} {}", step_idx, f64::from(loss.clone(&loss)));
         if step_idx % 1000 == 0 {
-            log::info!("{} {}", step_idx, f64::from(loss));
-            imagenet::save_image(&input_var, &format!("/opt/sam/files/out{}.jpg", step_idx))?;
+            // log::info!("{} {}", step_idx, f64::from(loss));
+            imagenet::save_image(&input_var, &format!("/opt/thalamus/files/out{}.jpg", step_idx))?;
 
 
-            let mut file = File::open(format!("/opt/sam/files/out{}.jpg", step_idx))?;
+            let mut file = File::open(format!("/opt/thalamus/files/out{}.jpg", step_idx))?;
             let mut buf = Vec::new();
             file.read_to_end(&mut buf)?;
 
-            // let mut file = crate::sam::memory::FileStorage::new();
+            // let mut file = crate::thalamus::memory::FileStorage::new();
             // file.file_name = format!("{}-{}-{}.jpg", oid, style, step_idx);
             // file.file_type = format!("image/jpeg");
             // file.file_data = Some(buf);
@@ -158,15 +160,15 @@ pub struct Style {
 
 pub fn styles() -> Result<Vec<Style>, crate::thalamus::services::Error> {
     let mut styles: Vec<Style> = Vec::new();
-    let paths = fs::read_dir("/opt/sam/models/nst/")?;
+    let paths = fs::read_dir("/opt/thalamus/models/nst/")?;
     for path in paths {
 
         let pth = path.unwrap().path().display().to_string();
 
-        // let style = Style{
-        //     name: titlecase(&format!("{}", pth.clone()).replace("/opt/sam/models/nst/", "").replace(".jpg", "").replace("_", " ")),
-        //     file_path: pth.clone(),
-        // };
+        let style = Style{
+            name: titlecase(&format!("{}", pth.clone()).replace("/opt/thalamus/models/nst/", "").replace(".jpg", "").replace("_", " ")),
+            file_path: pth.clone(),
+        };
 
         styles.push(style);
     }
@@ -174,41 +176,31 @@ pub fn styles() -> Result<Vec<Style>, crate::thalamus::services::Error> {
 }
 
 pub fn install() -> Result<(), crate::thalamus::services::Error> {
-    if !Path::new("/opt/sam/models/vgg16.ot").exists(){
-        crate::thalamus::tools::cmd(format!("wget -O /opt/sam/models/vgg16.ot https://github.com/LaurentMazare/tch-rs/releases/download/mw/vgg16.ot"))?;
+
+    if !Path::new("/opt/thalamus/models/vgg16.ot").exists(){
+        log::info!("Downloading VGG16 model");
+        crate::thalamus::tools::download("/opt/thalamus/models/vgg16.ot", "https://github.com/LaurentMazare/tch-rs/releases/download/mw/vgg16.ot")?;
     }
 
-    // let data = include_bytes!("../../../../packages/nst/fra_angelico.jpg");
-    // let mut pos = 0;
-    // let mut buffer = File::create("/opt/sam/models/nst/fra_angelico.jpg")?;
-    // while pos < data.len() {
-    //     let bytes_written = buffer.write(&data[pos..])?;
-    //     pos += bytes_written;
-    // }
+    if !Path::new("/opt/thalamus/models/nst/fra_angelico.jpg").exists(){
+        log::info!("Downloading fra_angelico.jpg");
+        crate::thalamus::tools::download("/opt/thalamus/models/nst/fra_angelico.jpg", "https://www.dropbox.com/s/nx2jupfw386yvm4/fra_angelico.jpg")?;
+    }
 
-    // let data = include_bytes!("../../../../packages/nst/paul_cézanne.jpg");
-    // let mut pos = 0;
-    // let mut buffer = File::create("/opt/sam/models/nst/paul_cézanne.jpg")?;
-    // while pos < data.len() {
-    //     let bytes_written = buffer.write(&data[pos..])?;
-    //     pos += bytes_written;
-    // }
+    if !Path::new("/opt/thalamus/models/nst/paul_cézanne.jpg").exists(){
+        log::info!("Downloading paul_cézanne.jpg");
+        crate::thalamus::tools::download("/opt/thalamus/models/nst/paul_cézanne.jpg", "https://www.dropbox.com/s/7cxzty6f1ad1wst/paul_c%C3%A9zanne.jpg")?;
+    }
 
-    // let data = include_bytes!("../../../../packages/nst/sassetta.jpg");
-    // let mut pos = 0;
-    // let mut buffer = File::create("/opt/sam/models/nst/sassetta.jpg")?;
-    // while pos < data.len() {
-    //     let bytes_written = buffer.write(&data[pos..])?;
-    //     pos += bytes_written;
-    // }
+    if !Path::new("/opt/thalamus/models/nst/sassetta.jpg").exists(){
+        log::info!("Downloading sassetta.jpg");
+        crate::thalamus::tools::download("/opt/thalamus/models/nst/sassetta.jpg", "https://www.dropbox.com/s/iv5y3n3li09v7uj/sassetta.jpg")?;
+    }
 
-    // let data = include_bytes!("../../../../packages/nst/vincent_van_gogh.jpg");
-    // let mut pos = 0;
-    // let mut buffer = File::create("/opt/sam/models/nst/vincent_van_gogh.jpg")?;
-    // while pos < data.len() {
-    //     let bytes_written = buffer.write(&data[pos..])?;
-    //     pos += bytes_written;
-    // }
+    if !Path::new("/opt/thalamus/models/nst/vincent_van_gogh.jpg").exists(){
+        log::info!("Downloading vincent_van_gogh.jpg");
+        crate::thalamus::tools::download("/opt/thalamus/models/nst/vincent_van_gogh.jpg", "https://www.dropbox.com/s/wpyuuw2qiir7c2i/vincent_van_gogh.jpg")?;
+    }
 
     return Ok(());
 }

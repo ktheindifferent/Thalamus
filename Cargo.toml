@@ -16,7 +16,8 @@ serde = { version = "1.0.133", features = ["derive", "rc"] }
 log = "0.4.14"
 rouille = "3.6.2"
 error-chain = "0.12.4"
-simple_logger = "1.13.6"
+# simple_logger = "1.13.6"
+simple_logger = { git = "https://github.com/PixelCoda/rust-simple_logger.git", version = "1.13.6" }
 wav = "1.0.0"
 sudo = "0.5"
 clearscreen = "2.0.1"
@@ -32,3 +33,6 @@ simple-dns = "0.5.2"
 libp2p = { version = "0.51.3", features = ["full", "async-std", "tcp", "dns", "websocket", "noise", "mplex", "yamux", "ping", "rendezvous", "identify"] }
 tokio = { version = "1.21.2", features = ["full"] }
 libmdns = "0.7"
+tch = "0.13.0"
+titlecase = "2.2.1"
+clap = "4.3.3"

@@ -109,8 +109,6 @@ pub fn patch_whisper_wts(file_path: String) -> Result<(), crate::thalamus::servi
     return Ok(());
 }
 
-
-// TODO: Compile whisper for raspi and patch installer
 pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
     

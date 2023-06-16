@@ -7,8 +7,6 @@
 // Developed by Caleb Mitchell Smith (PixelCoda)
 // Licensed under GPLv3....see LICENSE file.
 
-// TODO: sudo apt install libclblast-dev
-// sudo apt-get install libopenblas-dev
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 use std::path::Path;
@@ -24,9 +22,7 @@ error_chain! {
     }
 }
 
-
-// TODO: Compile whisper for raspi and patch installer
-pub fn install() -> Result<()> {
+pub fn install(args: crate::Args) -> Result<()> {
     
     match crate::thalamus::tools::mkdir("/opt"){
         Ok(_) => {},
@@ -46,6 +42,11 @@ pub fn install() -> Result<()> {
     match crate::thalamus::tools::mkdir("/opt/thalamus/models"){
         Ok(_) => {},
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models directory").into()),
+    }
+
+    match crate::thalamus::tools::mkdir("/opt/thalamus/models/nst"){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/models/nst directory").into()),
     }
 
     match crate::thalamus::tools::mkdir("/opt/thalamus/models/llama"){
@@ -145,6 +146,13 @@ pub fn install() -> Result<()> {
             }
         }
 
+        if !Path::new("/opt/thalamus/bin/docker").exists(){
+            match crate::thalamus::tools::ln("/opt/homebrew/bin/docker", "/opt/thalamus/bin/docker"){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
+            }
+        }
+
 
 
         // Uninstall python
@@ -155,12 +163,72 @@ pub fn install() -> Result<()> {
     }
 
 
-    // TODO: check for wget install and use apt, dnf, etc to install if not
+    // Linux
     #[cfg(all(target_os = "linux"))] {
+
+
+        // Install wget
+        if !Path::new("/bin/wget").exists(){
+            if Path::new("/bin/apt").exists(){
+                match crate::thalamus::tools::apt_install("wget"){
+                    Ok(_) => {},
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install wget").into()),
+                }
+            }
+
+            if Path::new("/bin/dnf").exists(){
+                match crate::thalamus::tools::dnf_install("wget"){
+                    Ok(_) => {},
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install wget").into()),
+                }
+            }
+        }
+
+        // Install libclblast-dev
+        if !Path::new("/usr/share/doc/libclblast-dev").exists(){
+            if Path::new("/bin/apt").exists(){
+                match crate::thalamus::tools::apt_install("libclblast-dev"){
+                    Ok(_) => {},
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install libclblast-dev").into()),
+                }
+            }
+
+            if Path::new("/bin/dnf").exists(){
+                match crate::thalamus::tools::dnf_install("libclblast-dev"){
+                    Ok(_) => {},
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install libclblast-dev").into()),
+                }
+            }
+        }
+
+        // Install libopenblas-dev
+        if !Path::new("/usr/share/doc/libopenblas-dev").exists(){
+            if Path::new("/bin/apt").exists(){
+                match crate::thalamus::tools::apt_install("libopenblas-dev"){
+                    Ok(_) => {},
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install libclblast-dev").into()),
+                }
+            }
+
+            if Path::new("/bin/dnf").exists(){
+                match crate::thalamus::tools::dnf_install("libopenblas-dev"){
+                    Ok(_) => {},
+                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install libclblast-dev").into()),
+                }
+            }
+        }
+
         if !Path::new("/opt/thalamus/bin/wget").exists(){
             match crate::thalamus::tools::ln("/bin/wget", "/opt/thalamus/bin/wget"){
                 Ok(_) => {},
                 Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link ffmpeg").into()),
+            }
+        }
+
+        if !Path::new("/opt/thalamus/bin/docker").exists(){
+            match crate::thalamus::tools::ln("/bin/docker", "/opt/thalamus/bin/docker"){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to link docker").into()),
             }
         }
     }
@@ -191,7 +259,12 @@ pub fn install() -> Result<()> {
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install ocnn").into()),
     }
 
-    match crate::thalamus::setup::install_service(){
+    match crate::thalamus::services::image::nst::install(){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install nst").into()),
+    }
+
+    match crate::thalamus::setup::install_service(args.clone()){
         Ok(_) => {},
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install thalamus as a service").into()),
     }
@@ -212,41 +285,41 @@ pub fn install_client() -> Result<()> {
         Err(_) => {},
     }
 
-    match crate::thalamus::tools::mkdir("/opt/thalamusc"){
+    match crate::thalamus::tools::mkdir("/opt/thalamus"){
         Ok(_) => {},
         Err(_) => {},
     }
 
-    match crate::thalamus::tools::mkdir("/opt/thalamusc/tmp"){
+    match crate::thalamus::tools::mkdir("/opt/thalamus/tmp"){
         Ok(_) => {},
         Err(_) => {},
     }
 
-    match crate::thalamus::tools::fix_permissions("/opt/thalamusc"){
+    match crate::thalamus::tools::fix_permissions("/opt/thalamus"){
         Ok(_) => {},
         Err(_) => {},
     }
 
-    if !Path::new("/opt/thalamusc/test.wav").exists(){
-        crate::thalamus::tools::download("/opt/thalamusc/test.wav", "https://www.dropbox.com/s/j55gxifpi5s62t4/test.wav")?;
+    if !Path::new("/opt/thalamus/test.wav").exists(){
+        crate::thalamus::tools::download("/opt/thalamus/test.wav", "https://www.dropbox.com/s/j55gxifpi5s62t4/test.wav")?;
     }
 
-    if !Path::new("/opt/thalamusc/test.jpg").exists(){
-        crate::thalamus::tools::download("/opt/thalamusc/test.jpg", "https://www.dropbox.com/s/socxvceshvxovpe/test.jpg")?;
+    if !Path::new("/opt/thalamus/test.jpg").exists(){
+        crate::thalamus::tools::download("/opt/thalamus/test.jpg", "https://www.dropbox.com/s/socxvceshvxovpe/test.jpg")?;
     }
 
     return Ok(());
 }
 
 
-pub fn install_service() -> Result<()> {
+pub fn install_service(args: crate::Args) -> Result<()> {
 
 
 
 
     // Mac OS
     #[cfg(all(target_os = "macos"))] {
-        update_osx_service_file();
+        update_osx_service_file(args.clone());
         match crate::thalamus::tools::launchd_bootout("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist"){
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to launch thalamus as a service").into()),
@@ -282,7 +355,7 @@ pub fn install_service() -> Result<()> {
 
     // Linux
     #[cfg(all(target_os = "linux"))] {
-        update_linux_service_file();
+        update_linux_service_file(args.clone());
         match crate::thalamus::tools::systemctl_reload(){
             Ok(_) => {},
             Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to reload systemctl").into()),
@@ -315,7 +388,7 @@ pub fn install_service() -> Result<()> {
     Ok(())
 }
 
-pub fn update_osx_service_file(){
+pub fn update_osx_service_file(args: crate::Args){
     let mut data = String::new();
     data.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     data.push_str("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n");
@@ -338,7 +411,7 @@ pub fn update_osx_service_file(){
     std::fs::write("/Library/LaunchDaemons/com.opensamfoundation.thalamus.plist", data).expect("Unable to write file");
 }
 
-pub fn update_linux_service_file(){
+pub fn update_linux_service_file(args: crate::Args){
     let mut data = String::new();
     data.push_str("[Unit]\n");
     data.push_str("Description=thalamus\n");
@@ -346,7 +419,11 @@ pub fn update_linux_service_file(){
     data.push_str("After=systemd-user-sessions.service\n");
     data.push_str("After=network-online.target\n\n");
     data.push_str("[Service]\n");
-    data.push_str(format!("ExecStart=/opt/thalamus/bin/thalamus\n").as_str());
+    if args.encrypt{
+        data.push_str(format!("ExecStart=/usr/bin/env LIBTORCH=/opt/thalamus/libtorch LD_LIBRARY_PATH=/opt/thalamus/libtorch/lib: /opt/thalamus/bin/thalamus --lang {} --max-threads {} --http-port {} --p2p-port {} --encrypt --key {}\n", args.lang, args.max_threads, args.http_port, args.p2p_port, args.key).as_str());
+    } else {
+        data.push_str(format!("ExecStart=/usr/bin/env LIBTORCH=/opt/thalamus/libtorch LD_LIBRARY_PATH=/opt/thalamus/libtorch/lib: /opt/thalamus/bin/thalamus --lang {} --max-threads {} --http-port {} --p2p-port {} --key {}\n", args.lang, args.max_threads, args.http_port, args.p2p_port, args.key).as_str());
+    }
     data.push_str("TimeoutSec=30\n");
     data.push_str("Restart=on-failure\n");
     data.push_str("RestartSec=30\n");
@@ -356,3 +433,4 @@ pub fn update_linux_service_file(){
     data.push_str("WantedBy=multi-user.target\n");
     std::fs::write("/lib/systemd/system/thalamus.service", data).expect("Unable to write file");
 }
+

@@ -9,6 +9,7 @@
 pub mod llama;
 pub mod whisper;
 pub mod image;
+pub mod tts;
 
 use error_chain::error_chain;
 error_chain! {
@@ -16,6 +17,8 @@ error_chain! {
         Io(std::io::Error);
         PostError(rouille::input::post::PostError);
         InternalToolsError(crate::thalamus::tools::Error);
+        ExternalRequestError(reqwest::Error);
+        TchError(tch::TchError);
         // Postgres(postgres::Error);
         // PostError(rouille::input::post::PostError);
         // RustTubeError(rustube::Error);

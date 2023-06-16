@@ -7,51 +7,43 @@
 // Developed by Caleb Mitchell Smith (PixelCoda)
 // Licensed under GPLv3....see LICENSE file.
 
-// TODO (0.0.1):
-// - Dynamically link ffmpeg library for M1/M2 mac (DONE)
-// - Move wget functions to rust native library (DONE)
-// - Move all cmd functions to rust native library (DONE)
-// - Automatic Service Installer for Unix (DONE)
-// - whisper vwav generation (DONE)
-// - llamma.cpp support (DONE)
-// - SRGAN (DONE)
-// - internal library (DONE)
-// - Complete p2p support with nodex exchange (DONE)
-// - publish 0.0.1
-
 // TODO (0.0.2):
-// - capablities framework for nodes
-// - apple natice TTS support?
-// - deepspeech TTS support?
-// - IBM Watson TTS support?
-// - Configurable web pool size, port, etc.
-// - Automatic updates via the Open Sam Foundation
-// - Nural Style Transfer using ANE
-// - Speech Synthesis using ANE
-// - Who.io using ANE?
-// - Encrypted wav/response support?
-// - HTTP/S encryption support?
+// - capablities framework for nodes (WIP)
+// - Move llama to 7B only by default, allow enableing 13B, 30B, 65B via the API (WIP)
+// - OpenTTS support (DONE)
+// - apple native TTS support? 
+// - Google TTS support?
+// - Amazon TTS support?
+// - Configurable web pool size, port, etc. (WIP)
+// - Automatic updates
+// - Nural Style Transfer (WIP)
+// - Encrypted wav/response support
 // - Ability to opt-in to send training data to the Open Sam Foundation
 // - YoloV8 Support
 
+// TODO: Jobs
+// - Clear local jobs and inform p2p network to clear them on server boot
+// - Update p2p network with new jobs as they are created and completed
+// - Use job to wrap calculate_stats, nodex, llama, stt, etc.
+// - Limit the number of concurant jobs based on job_type
 
 // Feature List
-// - TTS Speech Synthesis using Watson, Deepspeech, apple speech, etc.
-// - STT Speech decoding using whisper.cpp with visual wav file generation
-// - Llama GPT chat speech generation with multiple model support
-// - YoloV8 Image Recognition
+// - TTS speech synthesis using OpenTTS
+// - STT speech decoding using whisper.cpp with visual wav file generation
+// - Llama.cpp GPT chat generation with multiple model support (7B, 13B, 30B, 65B)
+// - Nueral Style Transfer (NST)
 // - Image Super Resolution Using SRGAN
 // - Web API for easy intergration into existing projects
-// - Who.io facial recognition
-// - SPREC speech recognition
-
+// - p2p mesh networking for optimal node selection in production enviroments
+// - YoloV8 Image Recognition (WIP)
+// - Who.io facial recognition (WIP)
+// - SPREC speech recognition (WIP)
 
 
 // use std::error::Error;
 use tokio::task;
 use rouille::Server;
 use rouille::Response;
-use tokio::task::yield_now;
 use simple_dns::{Name, CLASS, ResourceRecord, rdata::{RData, A, SRV}};
 use simple_mdns::sync_discovery::SimpleMdnsResponder;
 use std::{net::IpAddr};
@@ -60,7 +52,9 @@ use std::sync::Mutex;
 use local_ip_address::list_afinet_netifas;
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
-
+use simple_logger::SimpleLogger;
+use std::path::Path;
+use clap::Parser;
 
 #[tokio::main]
 async fn main() {
@@ -68,7 +62,22 @@ async fn main() {
     // Escelate to sudo, setup logging, etc.
     clearscreen::clear().unwrap();
     sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
-    simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_utc_timestamps().init().unwrap();
+    simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
+
+
+    // if Path::new("/opt/thalamus/").exists() {
+    //     let touch_status = thalamus::thalamus::tools::touch("/opt/thalamus/output.log".to_string());
+    //     if touch_status.is_ok() {
+    //         SimpleLogger::new().with_colors(true).with_timestamps(true).with_output_file("/opt/thalamus/output.log".to_string()).init().unwrap();
+    //     } else {
+    //         SimpleLogger::new().with_colors(true).with_timestamps(true).init().unwrap();
+    //     }
+    // } else {
+    //     simple_logger::SimpleLogger::new().with_colors(true).with_timestamps(true).init().unwrap();
+    // }
+
+
+
 
     // Print Application Art and Version Information
     println!("████████ ██   ██  █████  ██       █████  ███    ███ ██    ██ ███████ ");
@@ -82,13 +91,18 @@ async fn main() {
         None => println!("Version: Unknown"),
     };
 
+    let args = thalamus::Args::parse();
+    println!("{:?}", args);
+
+ 
+
     // Install Thalamus
     match std::env::current_exe() {
         Ok(exe_path) => {
             let current_exe_path = format!("{}", exe_path.display());
 
             if current_exe_path.as_str() != "/opt/thalamus/bin/thalamus"{
-                match thalamus::thalamus::setup::install(){
+                match thalamus::thalamus::setup::install(args.clone()){
                     Ok(_) => log::warn!("Installed thalamus"),
                     Err(e) => log::error!("Error installing thalamus: {}", e),
                 };
@@ -101,13 +115,12 @@ async fn main() {
         Err(e) => log::error!("Error getting current executable path: {}", e),
     };
 
+    // Initialize tts server
+    thalamus::thalamus::services::tts::init(args.clone());
 
-    // // Setup Thalamus Client
-    let mut thalamus = Arc::new(Mutex::new(thalamus::ThalamusClient::load(0).unwrap()));
+    // Setup Thalamus Client
+    let thalamus = Arc::new(Mutex::new(thalamus::ThalamusClient::load(0).unwrap()));
     
-
-
-
     // Initialize the p2p server
     let p2p_server = task::spawn(async {
         thalamus::p2p::init_p2p_server().await.unwrap();
@@ -131,7 +144,9 @@ async fn main() {
         }
     });
 
-    std::thread::spawn(|| {
+    // MDNS Responder thread
+    let thx_port = args.http_port.clone();
+    std::thread::spawn(move || {
         let network_interfaces = list_afinet_netifas().unwrap();
         let mut responder = SimpleMdnsResponder::new(10);
         let srv_name = Name::new_unchecked("_thalamus._tcp.local");
@@ -141,7 +156,7 @@ async fn main() {
             responder.clear();
         
             for (_name, ip) in network_interfaces.iter() {
-                if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).ends_with(".0.1"){
+                if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).ends_with(".1"){
                     match *ip {
                         IpAddr::V4(ipv4) => { 
                             responder.add_resource(ResourceRecord::new(
@@ -163,7 +178,7 @@ async fn main() {
                 CLASS::IN,
                 10,
                 RData::SRV(SRV {
-                    port: 8050,
+                    port: thx_port,
                     priority: 0,
                     weight: 0,
                     target: srv_name.clone()
@@ -178,14 +193,18 @@ async fn main() {
         
     });
 
-    std::thread::spawn(|| {
+    // Main Thread
+    let main_thc = Arc::clone(&thalamus);
+    let http_port = args.http_port.clone();
+    let max_threads = args.max_threads.clone();
+    std::thread::spawn(move || {
         match std::env::current_exe() {
             Ok(exe_path) => {
                 let current_exe_path = format!("{}", exe_path.display());
-
+                let main_sub_thc = Arc::clone(&main_thc);
                 if current_exe_path.as_str() == "/opt/thalamus/bin/thalamus"{
-                    let server = Server::new("0.0.0.0:8050", move |request| {
-                        match thalamus::thalamus::http::handle(request){
+                    let server = Server::new(format!("0.0.0.0:{}", http_port).as_str(), move |request| {
+                        match thalamus::thalamus::http::handle(request, Arc::clone(&main_sub_thc)){
                             Ok(request) => {
                                 log::info!("{:?}", request);
                                 return request;
@@ -195,7 +214,7 @@ async fn main() {
                                 return Response::empty_404();
                             }
                         }
-                    }).unwrap().pool_size(6);
+                    }).unwrap().pool_size(max_threads.into());
                 
                     loop {
                         server.poll();
@@ -206,20 +225,7 @@ async fn main() {
         }
     });
 
-    // mdns
-    // std::thread::spawn(|| {
-    //     let responder = libmdns::Responder::new().unwrap();
-    //     let _svc = responder.register(
-    //         "_thalamus._tcp.local".to_owned(),
-    //         "thalamus".to_owned(),
-    //         8050,
-    //         &["path=/"],
-    //     );
-    
-    //     loop {
-    //         ::std::thread::sleep(::std::time::Duration::from_secs(10));
-    //     }
-    // });
+
 
     
     let _idk = tokio::join!(

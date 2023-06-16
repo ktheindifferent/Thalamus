@@ -106,6 +106,42 @@ pub fn brew_install(package: &str) -> Result<String>{
     return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
 }
 
+pub fn apt_install(package: &str) -> Result<String>{
+
+    let child = Command::new("/bin/apt")
+    .arg("install")
+    .arg(package)
+    .arg("-y")
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
+pub fn dnf_install(package: &str) -> Result<String>{
+
+    let child = Command::new("/bin/dnf")
+    .arg("install")
+    .arg(package)
+    .arg("-y")
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
 pub fn brew_uninstall(package: &str) -> Result<String>{
     let child = Command::new("/usr/bin/sudo")
     .arg("-u")
