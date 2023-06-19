@@ -10,7 +10,7 @@
 pub mod srgan;
 pub mod ocnn;
 pub mod nst;
-
+pub mod yolo;
 
 
 

@@ -106,6 +106,23 @@ pub fn brew_install(package: &str) -> Result<String>{
     return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
 }
 
+pub fn untar(file_path: &str) -> Result<String>{
+
+    let child = Command::new("/bin/tar")
+    .arg("-xf")
+    .arg(file_path)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
+}
+
 pub fn apt_install(package: &str) -> Result<String>{
 
     let child = Command::new("/bin/apt")

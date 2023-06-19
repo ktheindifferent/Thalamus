@@ -27,6 +27,7 @@ error_chain! {
         // Postgres(postgres::Error);
         PostError(rouille::input::post::PostError);
         // RustTubeError(rustube::Error);
+        JSONParseError(serde_json::Error);
         InternalServiceError(crate::thalamus::services::Error);
         ToolKitError(crate::thalamus::tools::Error);
         // SamMemoryError(crate::sam::memory::Error);

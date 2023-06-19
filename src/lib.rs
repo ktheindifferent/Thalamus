@@ -424,8 +424,18 @@ impl ThalamusNode {
         return node;
     }
 
-    pub fn whisper_stt_tiny(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
-        let form = reqwest::blocking::multipart::Form::new().text("method", "tiny").file("speech", tmp_file_path.as_str())?;
+    pub fn yolov7(&self, file_path: String) -> Result<STTReply, Box<dyn Error>>{
+        let form = reqwest::blocking::multipart::Form::new().file("image_file", file_path.as_str())?;
+
+        let client = reqwest::blocking::Client::builder().timeout(None).build()?;
+
+        return Ok(client.post(format!("http://{}:{}/api/services/image/yolo/v7", self.ip_address.clone(), self.port.clone()))
+        .multipart(form)
+        .send()?.json()?);
+    }
+
+    pub fn whisper_stt_tiny(&self, file_path: String) -> Result<STTReply, Box<dyn Error>>{
+        let form = reqwest::blocking::multipart::Form::new().text("method", "tiny").file("speech", file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -434,8 +444,8 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn whisper_stt_base(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
-        let form = reqwest::blocking::multipart::Form::new().text("method", "basic").file("speech", tmp_file_path.as_str())?;
+    pub fn whisper_stt_base(&self, file_path: String) -> Result<STTReply, Box<dyn Error>>{
+        let form = reqwest::blocking::multipart::Form::new().text("method", "basic").file("speech", file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -444,8 +454,8 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn whisper_stt_medium(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
-        let form = reqwest::blocking::multipart::Form::new().text("method", "medium").file("speech", tmp_file_path.as_str())?;
+    pub fn whisper_stt_medium(&self, file_path: String) -> Result<STTReply, Box<dyn Error>>{
+        let form = reqwest::blocking::multipart::Form::new().text("method", "medium").file("speech", file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -454,8 +464,8 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn whisper_stt_large(&self, tmp_file_path: String) -> Result<STTReply, Box<dyn Error>>{
-        let form = reqwest::blocking::multipart::Form::new().text("method", "large").file("speech", tmp_file_path.as_str())?;
+    pub fn whisper_stt_large(&self, file_path: String) -> Result<STTReply, Box<dyn Error>>{
+        let form = reqwest::blocking::multipart::Form::new().text("method", "large").file("speech", file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -464,13 +474,13 @@ impl ThalamusNode {
         .send()?.json()?);
     }
 
-    pub fn whisper_vwav_tiny(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+    pub fn whisper_vwav_tiny(&self, file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
         
         let url = format!("http://{}:{}/api/services/whisper/vwav", self.ip_address.clone(), self.port.clone());
 
         log::info!("Fetching VWAV from {}", url);
         
-        let form = reqwest::blocking::multipart::Form::new().text("method", "tiny").file("speech", tmp_file_path.as_str())?;
+        let form = reqwest::blocking::multipart::Form::new().text("method", "tiny").file("speech", file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -481,14 +491,14 @@ impl ThalamusNode {
         return Ok(bytes.to_vec());
     }
 
-    pub fn whisper_vwav_base(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+    pub fn whisper_vwav_base(&self, file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
                 
         let url = format!("http://{}:{}/api/services/whisper/vwav", self.ip_address.clone(), self.port.clone());
 
         log::info!("Fetching VWAV from {}", url);
         
         
-        let form = reqwest::blocking::multipart::Form::new().text("method", "base").file("speech", tmp_file_path.as_str())?;
+        let form = reqwest::blocking::multipart::Form::new().text("method", "base").file("speech", file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -499,12 +509,12 @@ impl ThalamusNode {
         return Ok(bytes.to_vec());
     }
 
-    pub fn whisper_vwav_medium(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+    pub fn whisper_vwav_medium(&self, file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
         let url = format!("http://{}:{}/api/services/whisper/vwav", self.ip_address.clone(), self.port.clone());
 
         log::info!("Fetching VWAV from {}", url);
         
-        let form = reqwest::blocking::multipart::Form::new().text("method", "medium").file("speech", tmp_file_path.as_str())?;
+        let form = reqwest::blocking::multipart::Form::new().text("method", "medium").file("speech", file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -515,12 +525,12 @@ impl ThalamusNode {
         return Ok(bytes.to_vec());
     }
 
-    pub fn whisper_vwav_large(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+    pub fn whisper_vwav_large(&self, file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
         let url = format!("http://{}:{}/api/services/whisper/vwav", self.ip_address.clone(), self.port.clone());
 
         log::info!("Fetching VWAV from {}", url);
         
-        let form = reqwest::blocking::multipart::Form::new().text("method", "large").file("speech", tmp_file_path.as_str())?;
+        let form = reqwest::blocking::multipart::Form::new().text("method", "large").file("speech", file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -531,9 +541,9 @@ impl ThalamusNode {
         return Ok(bytes.to_vec());
     }
 
-    pub fn srgan(&self, tmp_file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
+    pub fn srgan(&self, file_path: String) -> Result<Vec<u8>, Box<dyn Error>>{
 
-        let parts: Vec<&str> = tmp_file_path.split('.').collect();
+        let parts: Vec<&str> = file_path.split('.').collect();
 
         let extension = parts[parts.len() - 1];
 
@@ -541,7 +551,7 @@ impl ThalamusNode {
 
         let new_file_name = format!("{}.{}", timestamp, extension);
 
-        let form = reqwest::blocking::multipart::Form::new().text("filename", new_file_name).file("input_file", tmp_file_path.as_str())?;
+        let form = reqwest::blocking::multipart::Form::new().text("filename", new_file_name).file("input_file", file_path.as_str())?;
 
         let client = reqwest::blocking::Client::builder().timeout(None).build()?;
 
@@ -605,6 +615,25 @@ impl ThalamusNode {
         });
         return receiver.recv_timeout(std::time::Duration::from_millis(100));
     }
+
+    pub fn test_yolov7(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
+        log::info!("{}: Running YOLOv7 test...", self.pid);
+        let (sender, receiver) = mpsc::channel();
+        let node_c = self.clone();
+        let _t = thread::spawn(move || {
+            let start_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let _ = node_c.yolov7("/opt/thalamus/test.jpg".to_string()).unwrap();
+            let end_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+            let time_elapsed = Some(end_timestamp - start_timestamp);
+
+            match sender.send(time_elapsed) {
+                Ok(()) => {}, // everything good
+                Err(_) => {}, // we have been released, don't panic
+            }
+        });
+        return receiver.recv_timeout(std::time::Duration::from_millis(100));
+    }
+
 
     pub fn test_srgan(&self) -> Result<std::option::Option<i64>, std::sync::mpsc::RecvTimeoutError>{
         log::info!("{}: Running SRGAN test...", self.pid);

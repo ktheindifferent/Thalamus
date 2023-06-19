@@ -8,18 +8,17 @@
 // Licensed under GPLv3....see LICENSE file.
 
 // TODO (0.0.2):
-// - capablities framework for nodes (WIP)
-// - Move llama to 7B only by default, allow enableing 13B, 30B, 65B via the API (WIP)
 // - OpenTTS support (DONE)
-// - apple native TTS support? 
-// - Google TTS support?
-// - Amazon TTS support?
+// - Yolov7 https://github.com/PixelCoda/YoloV7.cpp (DONE)
 // - Configurable web pool size, port, etc. (DONE)
-// - Automatic updates
+// - capablities framework for nodes (WIP)
 // - Nural Style Transfer (WIP)
-// - Encrypted wav/response support
+// - Yolov3 Darknet Support (WIP)
+// - Move llama to 7B only by default, allow enableing 13B, 30B, 65B via the API (WIP)
+// - Encrypted wav/response support 
 // - Ability to opt-in to send training data to the Open Sam Foundation
-// - YoloV8 Support
+// - rust bert support (translation, GPT, summerization)
+// - Automatic updates
 
 // TODO: Jobs
 // - Clear local jobs and inform p2p network to clear them on server boot

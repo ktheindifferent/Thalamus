@@ -264,6 +264,11 @@ pub fn install(args: crate::Args) -> Result<()> {
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install nst").into()),
     }
 
+    match crate::thalamus::services::image::yolo::install(){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install yolo").into()),
+    }
+
     match crate::thalamus::setup::install_service(args.clone()){
         Ok(_) => {},
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install thalamus as a service").into()),
