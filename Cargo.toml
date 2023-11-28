@@ -16,7 +16,6 @@ serde = { version = "1.0.133", features = ["derive", "rc"] }
 log = "0.4.14"
 rouille = "3.6.2"
 error-chain = "0.12.4"
-# simple_logger = "1.13.6"
 simple_logger = { git = "https://github.com/PixelCoda/rust-simple_logger.git", version = "1.13.6" }
 wav = "1.0.0"
 sudo = "0.5"
