@@ -37,7 +37,7 @@ pub struct Args {
     #[arg(short, long, default_value_t = 6)]
     pub max_threads: u8,
     #[arg(short, long, default_value_t = 8050)]
-    pub http_port: u16,
+    pub www_port: u16,
     #[arg(short, long, default_value_t = 62649)]
     pub p2p_port: u16,
     #[arg(short, long, default_value_t = false)]
@@ -84,7 +84,6 @@ pub async fn mdns_discovery(thalamus: Arc<Mutex<ThalamusClient>>, discovery: sim
     let services = discovery.get_known_services().await;
     if services.len() > 0 {
         for xy in services{
-            log::info!("vhhjv: {:?}", xy);
             // Register using ip address
             for ipfx in xy.ip_addresses.clone(){
                 let ipx = ipfx.to_string();
@@ -102,7 +101,7 @@ pub async fn mdns_discovery(thalamus: Arc<Mutex<ThalamusClient>>, discovery: sim
       
                                     thalamus_x.nodes[index].is_online = true;
                                     thalamus_x.nodes[index].last_ping = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
-                                    log::info!("NODE_ONLINE: {:?}", thalamus_x.nodes[index].clone());
+                                    // log::info!("NODE_ONLINE: {:?}", thalamus_x.nodes[index].clone());
                                 
                                     thalamus_x.save();
                                     
@@ -137,7 +136,7 @@ pub async fn mdns_discovery(thalamus: Arc<Mutex<ThalamusClient>>, discovery: sim
 
                                     thalamus_x.nodes[index].is_online = false;
                                     thalamus_x.save();
-                                    log::info!("NODE_OFFLINE: {:?}", thalamus_x.nodes[index].clone());
+                                    log::warn!("NODE_OFFLINE: {:?}", thalamus_x.nodes[index].clone());
                        
                                     std::mem::drop(thalamus_x);
                                    

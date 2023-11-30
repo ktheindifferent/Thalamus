@@ -177,30 +177,47 @@ pub fn styles() -> Result<Vec<Style>, crate::thalamus::services::Error> {
 
 pub fn install() -> Result<(), crate::thalamus::services::Error> {
 
-    if !Path::new("/opt/thalamus/models/vgg16.ot").exists(){
-        log::info!("Downloading VGG16 model");
-        crate::thalamus::tools::download("/opt/thalamus/models/vgg16.ot", "https://github.com/LaurentMazare/tch-rs/releases/download/mw/vgg16.ot")?;
-    }
 
-    if !Path::new("/opt/thalamus/models/nst/fra_angelico.jpg").exists(){
-        log::info!("Downloading fra_angelico.jpg");
-        crate::thalamus::tools::download("/opt/thalamus/models/nst/fra_angelico.jpg", "https://www.dropbox.com/s/nx2jupfw386yvm4/fra_angelico.jpg")?;
-    }
+        crate::thalamus::tools::safe_download(
+            "/opt/thalamus/models/vgg16.ot", 
+            "https://github.com/LaurentMazare/tch-rs/releases/download/mw/vgg16.ot",
+            Some("9669f5421e84d23178e2b0ef721264dfcbb90596b64ae8feb5aead389cf04b52"), 
+            Some(553437974)
+        );
+    
 
-    if !Path::new("/opt/thalamus/models/nst/paul_cézanne.jpg").exists(){
-        log::info!("Downloading paul_cézanne.jpg");
-        crate::thalamus::tools::download("/opt/thalamus/models/nst/paul_cézanne.jpg", "https://www.dropbox.com/s/7cxzty6f1ad1wst/paul_c%C3%A9zanne.jpg")?;
-    }
 
-    if !Path::new("/opt/thalamus/models/nst/sassetta.jpg").exists(){
-        log::info!("Downloading sassetta.jpg");
-        crate::thalamus::tools::download("/opt/thalamus/models/nst/sassetta.jpg", "https://www.dropbox.com/s/iv5y3n3li09v7uj/sassetta.jpg")?;
-    }
+        crate::thalamus::tools::safe_download(
+            "/opt/thalamus/models/nst/fra_angelico.jpg",
+            "https://www.dropbox.com/s/nx2jupfw386yvm4/fra_angelico.jpg?dl=1", 
+            Some("bb1d52da5ea76f17bd88dc6f51a2eaa8de3a088b124c364d9abe7bd1cc065cde"), 
+            Some(3088813)
+        );
 
-    if !Path::new("/opt/thalamus/models/nst/vincent_van_gogh.jpg").exists(){
-        log::info!("Downloading vincent_van_gogh.jpg");
-        crate::thalamus::tools::download("/opt/thalamus/models/nst/vincent_van_gogh.jpg", "https://www.dropbox.com/s/wpyuuw2qiir7c2i/vincent_van_gogh.jpg")?;
-    }
+
+        crate::thalamus::tools::safe_download(
+            "/opt/thalamus/models/nst/paul_cézanne.jpg", 
+            "https://www.dropbox.com/s/7cxzty6f1ad1wst/paul_c%C3%A9zanne.jpg?dl=1", 
+            Some("01a456c76287c7ddd9ac241d7837f72723e23af762fa60e28679741a8cca7ffe"), 
+            Some(5756479)
+        );
+
+
+        crate::thalamus::tools::safe_download(
+            "/opt/thalamus/models/nst/sassetta.jpg", 
+            "https://www.dropbox.com/s/iv5y3n3li09v7uj/sassetta.jpg?dl=1", 
+            Some("5530e98d468213b64370094864ae13c3f8135f452da7b866cc70fc162ac662d4"), 
+            Some(3447646)
+        );
+
+
+        crate::thalamus::tools::safe_download(
+            "/opt/thalamus/models/nst/vincent_van_gogh.jpg", 
+            "https://www.dropbox.com/s/wpyuuw2qiir7c2i/vincent_van_gogh.jpg?dl=1", 
+            Some("f4c90a682979037d55d53a8abb2600063fd7e64431970359037bb07dc4ddd3ce"), 
+            Some(5407122)
+        );
+    
 
     return Ok(());
 }

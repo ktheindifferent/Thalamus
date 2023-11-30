@@ -15,7 +15,7 @@ use std::process::{Command, Stdio};
 use error_chain::error_chain;
 use sha2::{Sha256, Digest};
 use std::{io, fs};
-
+use std::path::Path;
 
 pub mod cidr;
 pub mod netscan;
@@ -106,11 +106,13 @@ pub fn brew_install(package: &str) -> Result<String>{
     return Ok(String::from_utf8_lossy(&output.stdout).to_string());    
 }
 
-pub fn untar(file_path: &str) -> Result<String>{
+pub fn untar(file_path: &str, directory: &str) -> Result<String>{
 
-    let child = Command::new("/bin/tar")
+    let child = Command::new("/usr/bin/tar")
     .arg("-xf")
     .arg(file_path)
+    .arg("--directory")
+    .arg(directory)
     .stdout(Stdio::piped())
     .spawn()
     .expect("failed to execute child");
@@ -506,7 +508,7 @@ pub fn sh(script: &str) -> Result<String>{
 }
 
 pub fn srgan(input: &str, output: &str) -> Result<String>{
-    let child = Command::new("/opt/bin/thalamus/srgan")
+    let child = Command::new("/opt/thalamus/bin/srgan")
     .arg(input)
     .arg(output)
     .stdout(Stdio::piped())
@@ -521,6 +523,78 @@ pub fn srgan(input: &str, output: &str) -> Result<String>{
     return Ok(String::from_utf8_lossy(&output.stdout).to_string()); 
 }
 
+pub fn safe_download(file_path: &str, online_path: &str, hash: Option<&str>, expected_file_size: Option<i64>) -> (){
+    if !Path::new(file_path).exists(){
+        log::warn!("{} is missing.....downloading it from {}", file_path, online_path);
+        match crate::thalamus::tools::wget(file_path, online_path){
+            Ok(success) => {
+                if success {
+                    log::info!("{} downloaded successfully", file_path);
+                } else {
+                    log::warn!("{} failed to download...trying again", file_path);
+                    safe_download(file_path, online_path, hash, expected_file_size);
+                }
+            
+            },
+            Err(_) => return log::error!("failed to download {} from {}", file_path, online_path),
+        }
+    } else {
+        // hash check
+
+        let mut needs_hashing = false;
+        match expected_file_size{
+            Some(x_file_size) => {
+                if x_file_size == crate::thalamus::tools::get_file_size(file_path).unwrap(){
+                    log::info!("{} file size matches expectations...skiping hash check", file_path);
+                    needs_hashing = false;
+                } else {
+                    needs_hashing = true;
+                }
+            },
+            None => {
+                needs_hashing = true;
+            }
+        }
+
+
+        if needs_hashing{
+            match hash {
+                Some(xhash) => {
+                    if xhash == crate::thalamus::tools::hash_check(file_path).unwrap().as_str(){
+                        log::info!("{} is already downloaded and passes the hash check", file_path);
+                    } else {
+                        log::warn!("{} is already downloaded and fails the hash check", file_path);
+                        safe_download(file_path, online_path, hash, expected_file_size);
+                    }
+    
+                },
+                None => {
+                    log::info!("{} is already downloaded....no known hash....downloaded hash is: {}", file_path, crate::thalamus::tools::hash_check(file_path).unwrap());
+                },
+            }
+        }
+
+
+
+    }
+}
+
+pub fn wget(file_path: &str, url: &str) -> Result<bool>{
+    let child = Command::new("/opt/thalamus/bin/wget")
+    .arg("-O")
+    .arg(file_path)
+    .arg(url)
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("failed to execute child");
+
+
+    let _output = child
+    .wait_with_output()
+    .expect("failed to wait on child");
+
+    return Ok(true);
+}
 
 pub fn download(file_path: &str, url: &str) -> Result<bool>{
     let child = Command::new("/opt/thalamus/bin/wget")
@@ -573,13 +647,13 @@ pub fn touch(path: String) -> Result<()>{
     Ok(())
 }
 
-// ./main -m ./models/7B/ggml-model-q4_0.bin -p "Building a website can be done in 10 simple steps:" -n 512
+// ./main -m ./models/7B/ggml-model-q4_0.gguf -p "Building a website can be done in 10 simple steps:" -n 512
 
 
 pub fn llama(model: &str, prompt: &str) -> Result<String>{
     let child = Command::new("/opt/thalamus/bin/llama")
     .arg("-m")
-    .arg(format!("/opt/thalamus/models/llama/{}/ggml-model-q4_0.bin", model))
+    .arg(format!("/opt/thalamus/models/llama/{}/ggml-model-q4_0.gguf", model))
     .arg("-p")
     .arg(format!("\"{}\"", prompt))
     .stdout(Stdio::piped())

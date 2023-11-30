@@ -1,6 +1,6 @@
 [package]
 name = "thalamus"
-version = "0.0.12"
+version = "0.0.14"
 edition = "2021"
 description = "A deep learning mesh node server platform for linux/mac/unix"
 authors = ["Caleb Mitchell Smith-Woolrich <calebsmithwoolrich@gmail.com>"]
@@ -32,6 +32,9 @@ simple-dns = "0.5.2"
 libp2p = { version = "0.51.3", features = ["full", "async-std", "tcp", "dns", "websocket", "noise", "mplex", "yamux", "ping", "rendezvous", "identify"] }
 tokio = { version = "1.21.2", features = ["full"] }
 libmdns = "0.7"
-tch = "0.13.0"
+tch = "0.14.0"
 titlecase = "2.2.1"
 clap = "4.3.3"
+futures = "0.3.29"
+tract-tensorflow = "*"
+image = "*"

@@ -50,6 +50,14 @@ use std::sync::Mutex;
 use local_ip_address::list_afinet_netifas;
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 use clap::Parser;
+use std::io::Write;
+
+pub fn init_log(path: String) -> Result<(), std::io::Error>{
+    let mut output = std::fs::File::create(path.as_str())?;
+    write!(output, "")?;
+    Ok(())
+}
+
 
 #[tokio::main]
 async fn main() {
@@ -57,8 +65,10 @@ async fn main() {
     // Escelate to sudo, setup logging, etc.
     clearscreen::clear().unwrap();
     sudo::with_env(&["LIBTORCH", "LD_LIBRARY_PATH", "PG_DBNAME", "PG_USER", "PG_PASS", "PG_ADDRESS"]).unwrap();
-    simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
+    // simple_logger::SimpleLogger::new().with_colors(true).with_level(log::LevelFilter::Info).with_timestamps(true).init().unwrap();
 
+    init_log("/opt/thalamus/output.log".to_string()).unwrap();
+    simple_logger::SimpleLogger::new().with_colors(true).with_output_file("/opt/thalamus/output.log".to_string()).init().unwrap();
 
 
 
@@ -104,82 +114,84 @@ async fn main() {
 
     // Setup Thalamus Client
     let thalamus = Arc::new(Mutex::new(thalamus::ThalamusClient::load(0).unwrap()));
+
+    let thalamus_async = Arc::new(futures::lock::Mutex::new(thalamus::ThalamusClient::load(0).unwrap()));
     
     // Initialize the p2p server
-    let p2p_server = task::spawn(async {
-        thalamus::p2p::init_p2p_server().await.unwrap();
-    });
+    // let p2p_server = task::spawn(async {
+    //     thalamus::p2p::init_p2p_server().await.unwrap();
+    // });
 
 
-    let thalamus_discovery_thc = Arc::clone(&thalamus);
-    let discovery_server = task::spawn(async move{
+    // let thalamus_discovery_thc = Arc::clone(&thalamus);
+    // let discovery_server = task::spawn(async move{
         
-        let mut discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
-        let mut i = 0;
-        loop{
-            discoverx = thalamus::mdns_discovery(Arc::clone(&thalamus_discovery_thc), discoverx).await.unwrap();
-            thalamus::nodex_discovery(Arc::clone(&thalamus_discovery_thc)).await;
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            i += 1;
-            if i > 10 {
-                discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
-                i = 0;
-            }
-        }
-    });
+    //     let mut discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
+    //     let mut i = 0;
+    //     loop{
+    //         discoverx = thalamus::mdns_discovery(Arc::clone(&thalamus_discovery_thc), discoverx).await.unwrap();
+    //         // thalamus::nodex_discovery(Arc::clone(&thalamus_discovery_thc)).await;
+    //         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    //         i += 1;
+    //         if i > 10 {
+    //             discoverx = simple_mdns::async_discovery::ServiceDiscovery::new("a", "_thalamus._tcp.local", 10).unwrap();
+    //             i = 0;
+    //         }
+    //     }
+    // });
 
     // MDNS Responder thread
-    let thx_port = args.http_port.clone();
-    std::thread::spawn(move || {
-        let network_interfaces = list_afinet_netifas().unwrap();
-        let mut responder = SimpleMdnsResponder::new(10);
-        let srv_name = Name::new_unchecked("_thalamus._tcp.local");
+    // let thx_port = args.www_port.clone();
+    // std::thread::spawn(move || {
+    //     let network_interfaces = list_afinet_netifas().unwrap();
+    //     let mut responder = SimpleMdnsResponder::new(10);
+    //     let srv_name = Name::new_unchecked("_thalamus._tcp.local");
 
-        loop{
+    //     loop{
 
-            responder.clear();
+    //         responder.clear();
         
-            for (_name, ip) in network_interfaces.iter() {
-                if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).ends_with(".1"){
-                    match *ip {
-                        IpAddr::V4(ipv4) => { 
-                            responder.add_resource(ResourceRecord::new(
-                                srv_name.clone(),
-                                CLASS::IN,
-                                10,
-                                RData::A(A { address: ipv4.into() }),
-                            ));
-                        },
-                        IpAddr::V6(_ipv6) => { /* handle IPv6 */ }
-                    }
+    //         for (_name, ip) in network_interfaces.iter() {
+    //             if !ip.is_loopback() && !format!("{}", ip.clone()).contains(":") && !format!("{}", ip.clone()).ends_with(".1"){
+    //                 match *ip {
+    //                     IpAddr::V4(ipv4) => { 
+    //                         responder.add_resource(ResourceRecord::new(
+    //                             srv_name.clone(),
+    //                             CLASS::IN,
+    //                             10,
+    //                             RData::A(A { address: ipv4.into() }),
+    //                         ));
+    //                     },
+    //                     IpAddr::V6(_ipv6) => { /* handle IPv6 */ }
+    //                 }
 
                     
-                }
-            }
+    //             }
+    //         }
         
-            responder.add_resource(ResourceRecord::new(
-                srv_name.clone(),
-                CLASS::IN,
-                10,
-                RData::SRV(SRV {
-                    port: thx_port,
-                    priority: 0,
-                    weight: 0,
-                    target: srv_name.clone()
-                })
-            ));
+    //         responder.add_resource(ResourceRecord::new(
+    //             srv_name.clone(),
+    //             CLASS::IN,
+    //             10,
+    //             RData::SRV(SRV {
+    //                 port: thx_port,
+    //                 priority: 0,
+    //                 weight: 0,
+    //                 target: srv_name.clone()
+    //             })
+    //         ));
 
-            std::thread::sleep(std::time::Duration::from_secs(10));
+    //         std::thread::sleep(std::time::Duration::from_secs(10));
 
-        }
+    //     }
 
             
         
-    });
+    // });
 
     // Main Thread
     let main_thc = Arc::clone(&thalamus);
-    let http_port = args.http_port.clone();
+    let www_port = args.www_port.clone();
     let max_threads = args.max_threads.clone();
     std::thread::spawn(move || {
         match std::env::current_exe() {
@@ -187,10 +199,10 @@ async fn main() {
                 let current_exe_path = format!("{}", exe_path.display());
                 let main_sub_thc = Arc::clone(&main_thc);
                 if current_exe_path.as_str() == "/opt/thalamus/bin/thalamus"{
-                    let server = Server::new(format!("0.0.0.0:{}", http_port).as_str(), move |request| {
+                    let server = Server::new(format!("0.0.0.0:{}", www_port).as_str(), move |request| {
                         match thalamus::thalamus::http::handle(request, Arc::clone(&main_sub_thc)){
                             Ok(request) => {
-                                log::info!("{:?}", request);
+                                log::info!("HTTP: {:?}", request);
                                 return request;
                             },
                             Err(err) => {
@@ -212,10 +224,10 @@ async fn main() {
 
 
     
-    let _idk = tokio::join!(
-        p2p_server,
-        discovery_server,
-    );
+    // let _idk = tokio::join!(
+    //     p2p_server,
+    //     discovery_server,
+    // );
     loop {}
 
 }

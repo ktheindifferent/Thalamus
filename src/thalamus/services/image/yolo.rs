@@ -81,12 +81,22 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     #[cfg(all(target_arch = "x86_64", target_os = "linux"))] {
         if !Path::new("/opt/thalamus/bin/yolov7").exists(){
             log::info!("Installing yolov7 (x86_64) /opt/thalamus/bin/yolov7");
-            crate::thalamus::tools::download("/opt/thalamus/bin/yolov7", "https://www.dropbox.com/s/rc4v0zpxoze6i4s/yolov7")?;
+            crate::thalamus::tools::safe_download(
+                "/opt/thalamus/bin/yolov7", 
+                "https://www.dropbox.com/s/rc4v0zpxoze6i4s/yolov7?dl=1", 
+                None, 
+                None
+            );
         }
 
         if !Path::new("/opt/thalamus/models/yolov7.onnx").exists(){
             log::info!("Downloading yolov7 model /opt/thalamus/models/yolov7.onnx");
-            crate::thalamus::tools::download("/opt/thalamus/models/yolov7.onnx", "https://www.dropbox.com/s/yaxcikpiq9v6i1d/yolov7.onnx")?;
+            crate::thalamus::tools::safe_download(
+                "/opt/thalamus/models/yolov7.onnx", 
+                "https://www.dropbox.com/s/yaxcikpiq9v6i1d/yolov7.onnx?dl=1", 
+                None, 
+                None
+            );
         }
 
         match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/yolov7"){
@@ -97,20 +107,25 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
     // Apple M1/M2
     #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
-        if !Path::new("/opt/thalamus/bin/yolov7").exists(){
-            log::info!("Installing yolov7 (x86_64) /opt/thalamus/bin/yolov7");
-            crate::thalamus::tools::download("/opt/thalamus/bin/yolov7", "https://www.dropbox.com/s/0rj0shcmctiy6n6/yolov7")?;
-        }
+        crate::thalamus::tools::safe_download(
+            "/opt/thalamus/bin/yolov7", 
+            "https://www.dropbox.com/s/0rj0shcmctiy6n6/yolov7?dl=1", 
+            Some("4abbd78cf05ab703b99b3d984b893f2525b7045c37dc8454773aaa15e92a7bcd"), 
+            Some(3153216)
+        );
 
-        if !Path::new("/opt/thalamus/bin/yolov7.mlmodelc").exists(){
-            log::info!("Downloading yolov7 model /opt/thalamus/bin/yolov7.mlmodelc");
-            crate::thalamus::tools::download("/opt/thalamus/bin/yolov7.mlmodelc.tar.xz", "https://www.dropbox.com/s/3wm6tgv9w7d3iyp/yolov7.mlmodelc.tar.xz")?;
-        
-            match crate::thalamus::tools::untar("/opt/thalamus/bin/yolov7.mlmodelc.tar.xz"){
-                Ok(_) => (),
-                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to extract coreML model for yolov7").into())
-            }
+        crate::thalamus::tools::safe_download(
+            "/opt/thalamus/bin/yolov7.mlmodelc.tar.xz", 
+            "https://www.dropbox.com/s/3wm6tgv9w7d3iyp/yolov7.mlmodelc.tar.xz?dl=1", 
+            Some("8364636d8863f73eeaa344fbb5547102f3b8e22c0c73574678d8d1f8303f069c"), 
+            Some(111855848)
+        );
+    
+        match crate::thalamus::tools::untar("/opt/thalamus/bin/yolov7.mlmodelc.tar.xz", "/opt/thalamus/bin/"){
+            Ok(_) => (),
+            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to extract coreML model for yolov7").into())
         }
+        
 
         match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/yolov7"){
             Ok(_) => (),

@@ -112,102 +112,48 @@ pub fn patch_whisper_wts(file_path: String) -> Result<(), crate::thalamus::servi
 pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
     
-    if !Path::new("/opt/thalamus/models/ggml-tiny.bin").exists(){
-        log::warn!("ggml-tiny.bin is missing.....downloading it from https://huggingface.co/");
-        match crate::thalamus::tools::download("/opt/thalamus/models/ggml-tiny.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin"){
-            Ok(_) => {
-                log::info!("Stored model ggml-tiny.bin in /opt/thalamus/models/");
-            },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download tiny whisper model").into())
-        }
-    } else {
-        if 77691713 != crate::thalamus::tools::get_file_size("/opt/thalamus/models/ggml-tiny.bin")?{
-            // hash check
-            // be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21
-            if crate::thalamus::tools::hash_check("/opt/thalamus/models/ggml-tiny.bin").unwrap() != "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21".to_string(){
-                log::warn!("ggml-tiny.bin failed the hash check.....re-downloading it from https://huggingface.co/");
-                match crate::thalamus::tools::download("/opt/thalamus/models/ggml-tiny.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin"){
-                    Ok(_) => {
-                        log::info!("Stored model ggml-tiny.bin in /opt/thalamus/models/");
-                    },
-                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download tiny whisper model").into())
-                }
-            }
-        }
 
-    }
+    crate::thalamus::tools::safe_download(
+        "/opt/thalamus/models/ggml-tiny.bin",
+        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin", 
+        Some("be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21"), Some(77691713)
+    );
+    
+    crate::thalamus::tools::safe_download(
+        "/opt/thalamus/models/ggml-base.bin",
+        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin", 
+        Some("60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe"), Some(147951465)
+    );
 
-    if !Path::new("/opt/thalamus/models/ggml-base.bin").exists(){
-        log::warn!("ggml-base.bin is missing.....downloading it from https://huggingface.co/");
-        match crate::thalamus::tools::download("/opt/thalamus/models/ggml-base.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"){
-            Ok(_) => {
-                log::info!("Stored model ggml-base.bin in /opt/thalamus/models/");
-            },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
-        }
-    } else {
-        if 147951465 != crate::thalamus::tools::get_file_size("/opt/thalamus/models/ggml-base.bin")?{
-            // hash check
-            // 60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe
-            if crate::thalamus::tools::hash_check("/opt/thalamus/models/ggml-base.bin").unwrap() != "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe".to_string(){
-                log::warn!("ggml-base.bin failed the hash check.....re-downloading it from https://huggingface.co/");
-                match crate::thalamus::tools::download("/opt/thalamus/models/ggml-base.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"){
-                    Ok(_) => {
-                        log::info!("Stored model ggml-base.bin in /opt/thalamus/models/");
-                    },
-                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
-                }
-            }
-        }
-    }
+    crate::thalamus::tools::safe_download(
+        "/opt/thalamus/models/ggml-medium.bin",
+        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin", 
+        Some("6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208"), Some(1533763059)
+    );
 
-    if !Path::new("/opt/thalamus/models/ggml-medium.bin").exists(){
-        log::warn!("ggml-medium.bin is missing.....downloading it from https://huggingface.co/");
-        match crate::thalamus::tools::download("/opt/thalamus/models/ggml-medium.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin"){
-            Ok(_) => {
-                log::info!("Stored model ggml-medium.bin in /opt/thalamus/models/");
-            },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download medium whisper model").into())
-        }
-    } else {
-        if 1533763059 != crate::thalamus::tools::get_file_size("/opt/thalamus/models/ggml-medium.bin")?{
-            // hash check
-            // 6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208
-            if crate::thalamus::tools::hash_check("/opt/thalamus/models/ggml-medium.bin").unwrap() != "6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208".to_string(){
-                log::warn!("ggml-medium.bin failed the hash check.....re-downloading it from https://huggingface.co/");
-                match crate::thalamus::tools::download("/opt/thalamus/models/ggml-medium.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin"){
-                    Ok(_) => {
-                        log::info!("Stored model ggml-medium.bin in /opt/thalamus/models/");
-                    },
-                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download medium whisper model").into())
-                }
-            }
-        }
-    }
-
-    if !Path::new("/opt/thalamus/models/ggml-large.bin").exists(){
-        log::warn!("ggml-large.bin is missing.....downloading it from https://huggingface.co/");
-        match crate::thalamus::tools::download("/opt/thalamus/models/ggml-large.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large.bin"){
-            Ok(_) => {
-                log::info!("Stored model ggml-large.bin in /opt/thalamus/models/");
-            },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download large whisper model").into())
-        }
-    } else {
-        if 3094623691 != crate::thalamus::tools::get_file_size("/opt/thalamus/models/ggml-large.bin")?{
-            // hash check
-            // 9a423fe4d40c82774b6af34115b8b935f34152246eb19e80e376071d3f999487
-            if crate::thalamus::tools::hash_check("/opt/thalamus/models/ggml-large.bin").unwrap() != "9a423fe4d40c82774b6af34115b8b935f34152246eb19e80e376071d3f999487".to_string(){
-                log::warn!("ggml-large.bin failed the hash check.....re-downloading it from https://huggingface.co/");
-                match crate::thalamus::tools::download("/opt/thalamus/models/ggml-large.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large.bin"){
-                    Ok(_) => {
-                        log::info!("Stored model ggml-large.bin in /opt/thalamus/models/");
-                    },
-                    Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download medium whisper model").into())
-                }
-            }
-        }
-    }
+    // if !Path::new("/opt/thalamus/models/ggml-large.bin").exists(){
+    //     log::warn!("ggml-large.bin is missing.....downloading it from https://huggingface.co/");
+    //     match crate::thalamus::tools::download("/opt/thalamus/models/ggml-large.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large.bin"){
+    //         Ok(_) => {
+    //             log::info!("Stored model ggml-large.bin in /opt/thalamus/models/");
+    //         },
+    //         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download large whisper model").into())
+    //     }
+    // } else {
+    //     if 3094623691 != crate::thalamus::tools::get_file_size("/opt/thalamus/models/ggml-large.bin")?{
+    //         // hash check
+    //         // 9a423fe4d40c82774b6af34115b8b935f34152246eb19e80e376071d3f999487
+    //         if crate::thalamus::tools::hash_check("/opt/thalamus/models/ggml-large.bin").unwrap() != "9a423fe4d40c82774b6af34115b8b935f34152246eb19e80e376071d3f999487".to_string(){
+    //             log::warn!("ggml-large.bin failed the hash check.....re-downloading it from https://huggingface.co/");
+    //             match crate::thalamus::tools::download("/opt/thalamus/models/ggml-large.bin", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large.bin"){
+    //                 Ok(_) => {
+    //                     log::info!("Stored model ggml-large.bin in /opt/thalamus/models/");
+    //                 },
+    //                 Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download medium whisper model").into())
+    //             }
+    //         }
+    //     }
+    // }
 
 
 
@@ -224,12 +170,12 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     #[cfg(target_arch = "x86_64")]{
         if !Path::new("/opt/thalamus/bin/whisper").exists(){
             log::info!("Installing whisper (x86_64) /opt/thalamus/bin/whisper");
-            crate::thalamus::tools::download("/opt/thalamus/bin/whisper", "https://www.dropbox.com/s/ovcjbhmdysnlyyn/main")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/bin/whisper", "https://www.dropbox.com/s/ovcjbhmdysnlyyn/main?dl=1", None, None);
         }
 
         if !Path::new("/opt/thalamus/bin/ffmpeg").exists(){
             log::info!("Installing ffmpeg (x86_64) /opt/thalamus/bin/ffmpeg");
-            crate::thalamus::tools::download("/opt/thalamus/bin/ffmpeg", "https://www.dropbox.com/s/j91btel44c37g98/ffmpeg")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/bin/ffmpeg", "https://www.dropbox.com/s/j91btel44c37g98/ffmpeg?dl=1", None, None);
         }
         match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/ffmpeg"){
             Ok(_) => (),
@@ -243,22 +189,22 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
         if !Path::new("/opt/thalamus/bin/whisper").exists(){
             log::info!("Installing whisper (aarch64) /opt/thalamus/bin");
-            crate::thalamus::tools::download("/opt/thalamus/bin/whisper", "https://www.dropbox.com/s/1fl35hlp5op2pfn/main")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/bin/whisper", "https://www.dropbox.com/s/1fl35hlp5op2pfn/main?dl=1", None, None);
         }
 
         if !Path::new("/opt/thalamus/models/convert-whisper-to-coreml.py").exists(){
             log::info!("Unpacking convert-whisper-to-coreml.py...");
-            crate::thalamus::tools::download("/opt/thalamus/models/convert-whisper-to-coreml.py", "https://www.dropbox.com/s/hu40n989phv0igk/convert-whisper-to-coreml.py")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/models/convert-whisper-to-coreml.py", "https://www.dropbox.com/s/hu40n989phv0igk/convert-whisper-to-coreml.py?dl=1", None, None);
         }
 
         if !Path::new("/opt/thalamus/models/generate-coreml-model.sh").exists(){
             log::info!("Unpacking generate-coreml-model.sh...");
-            crate::thalamus::tools::download("/opt/thalamus/models/generate-coreml-model.sh", "https://www.dropbox.com/s/8h59bw07q8tbaak/generate-coreml-model.sh")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/models/generate-coreml-model.sh", "https://www.dropbox.com/s/8h59bw07q8tbaak/generate-coreml-model.sh?dl=1", None, None);
         }
 
         if !Path::new("/opt/thalamus/models/coreml.sh").exists(){
             log::info!("Unpacking coreml.sh...");
-            crate::thalamus::tools::download("/opt/thalamus/models/coreml.sh", "https://www.dropbox.com/s/ico9dlti77v6k6u/coreml.sh")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/models/coreml.sh", "https://www.dropbox.com/s/ico9dlti77v6k6u/coreml.sh?dl=1", None, None);
         }
 
         // Fix permissions
@@ -277,7 +223,7 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
         }
 
         // Configure Miniconda and Generate ML models if necessary
-        if !Path::new("/opt/thalamus/models/coreml-encoder-tiny.mlpackage").exists() || !Path::new("/opt/thalamus/models/coreml-encoder-large.mlpackage").exists(){
+        if !Path::new("/opt/thalamus/models/coreml-encoder-tiny.mlpackage").exists(){
             log::warn!("CoreML Encoders are missing...please be patient while they are being generated. This may take a while. Future launches will be faster.");
             match crate::thalamus::tools::sh("/opt/thalamus/models/coreml.sh"){
                 Ok(_) => {},
@@ -288,7 +234,7 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     }
 
     if !Path::new("/opt/thalamus/fonts/courier.ttf").exists(){
-        crate::thalamus::tools::download("/opt/thalamus/fonts/courier.ttf", "https://www.dropbox.com/s/qip7w9ik3a15qso/courier.ttf")?;
+        crate::thalamus::tools::safe_download("/opt/thalamus/fonts/courier.ttf", "https://www.dropbox.com/s/qip7w9ik3a15qso/courier.ttf?dl=1", None, None);
     }
 
     match crate::thalamus::tools::mark_as_executable("/opt/thalamus/bin/whisper"){

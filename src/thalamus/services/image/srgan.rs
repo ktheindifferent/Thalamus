@@ -23,14 +23,15 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
     if request.url().contains("/api/services/image/srgan"){
 
         let input = post_input!(request, {
-            filename: String,
             input_file: BufferedFile,
         })?;
 
-        let mime_type = crate::thalamus::tools::find_mimetype(&input.filename.clone());
+        let xyz = input.input_file.filename.unwrap();
 
-        let tmp_file_path = format!("/opt/thalamus/tmp/srgan/{}", input.filename.clone());
-        let out_file_path = format!("/opt/thalamus/tmp/srgan/SRGAN_{}", input.filename.clone());
+        let mime_type = crate::thalamus::tools::find_mimetype(&xyz.clone());
+
+        let tmp_file_path = format!("/opt/thalamus/tmp/srgan/{}", xyz.clone());
+        let out_file_path = format!("/opt/thalamus/tmp/srgan/SRGAN_{}", xyz.clone());
         let mut file = File::create(tmp_file_path.clone())?;
         file.write_all(&input.input_file.data)?;
 
@@ -58,17 +59,17 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
     if !Path::new("/opt/thalamus/bin/srgan").exists(){
         #[cfg(all(target_arch = "x86_64", target_os = "linux"))] {
             log::info!("Unpacking SRGAN");
-            crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/l4smcanvwjf3huy/srgan")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/l4smcanvwjf3huy/srgan?dl=1", None, None);
         }
 
         #[cfg(all(target_arch = "aarch64", target_os = "linux"))] {
             log::info!("Unpacking SRGAN");
-            crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/sgf76zwss8m4xu3/srgan")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/sgf76zwss8m4xu3/srgan?dl=1", None, None);
         }
 
         #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
             log::info!("Unpacking SRGAN");
-            crate::thalamus::tools::download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/52imqf6clftie47/srgan")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/bin/srgan", "https://www.dropbox.com/s/52imqf6clftie47/srgan?dl=1", None, None);
         }
     }
 

@@ -48,17 +48,19 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
     return Ok(Response::empty_404());
 }
 
+// TODO: Patch linux to 1.1 version of llama
+// TODO: Add support for 13B, 30B, and 65B
 pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
     if !Path::new("/opt/thalamus/bin/llama").exists(){
         #[cfg(all(target_arch = "aarch64", target_os = "macos"))] {
-            crate::thalamus::tools::download("/opt/thalamus/bin/llama", "https://www.dropbox.com/s/oaim2iya4jt2l69/main")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/bin/llama", "https://www.dropbox.com/scl/fi/4ljqsqbvtwcmtqz3sr7db/main?rlkey=a0ktgg402tyoxmcyuy9fzii7k&dl=1", None, None);
         }
         #[cfg(all(target_arch = "aarch64", target_os = "linux"))] {
-            crate::thalamus::tools::download("/opt/thalamus/bin/llama", "https://www.dropbox.com/s/5cxh3hduwwjv0vv/main")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/bin/llama", "https://www.dropbox.com/s/5cxh3hduwwjv0vv/main?dl=1", None, None);
         }
         #[cfg(all(target_arch = "x86_64", target_os = "linux"))] {
-            crate::thalamus::tools::download("/opt/thalamus/bin/llama", "https://www.dropbox.com/s/93sj2fruleo80y0/main")?;
+            crate::thalamus::tools::safe_download("/opt/thalamus/bin/llama", "https://www.dropbox.com/s/93sj2fruleo80y0/main?dl=1", None, None);
         }
     }
 
@@ -69,53 +71,12 @@ pub fn install() -> Result<(), crate::thalamus::setup::Error> {
 
     
     // Download quantized 7B llama model from Open Sam Foundation (OSF)
-    if !Path::new("/opt/thalamus/models/llama/7B/ggml-model-q4_0.bin").exists(){
-        log::warn!("ggml-base.bin is missing.....downloading it from https://www.dropbox.com/s/rxvd04dhxxgkfh8/ggml-model-q4_0.bin");
-        match crate::thalamus::tools::download("/opt/thalamus/models/llama/7B/ggml-model-q4_0.bin", "https://www.dropbox.com/s/rxvd04dhxxgkfh8/ggml-model-q4_0.bin"){
-            Ok(_) => {
-                log::info!("Stored model in /opt/thalamus/models/");
-            },
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
-        }
-    }
-
-
-    // // Download quantized 13B llama model from Open Sam Foundation (OSF)
-    // // https://www.dropbox.com/s/3gt8kzyw9kxc79q/ggml-model-q4_0.bin
-    // if !Path::new("/opt/thalamus/models/llama/13B/ggml-model-q4_0.bin").exists(){
-    //     log::warn!("ggml-base.bin is missing.....downloading it from https://www.dropbox.com/s/3gt8kzyw9kxc79q/ggml-model-q4_0.bin");
-    //     match crate::thalamus::tools::download("/opt/thalamus/models/llama/13B/ggml-model-q4_0.bin", "https://www.dropbox.com/s/3gt8kzyw9kxc79q/ggml-model-q4_0.bin"){
-    //         Ok(_) => {
-    //             log::info!("Stored model in /opt/thalamus/models/");
-    //         },
-    //         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
-    //     }
-    // }
-
-    // // Download quantized 30B llama model from Open Sam Foundation (OSF)
-    // // https://www.dropbox.com/s/3jpddk0uoghr0eo/ggml-model-q4_0.bin
-    // if !Path::new("/opt/thalamus/models/llama/30B/ggml-model-q4_0.bin").exists(){
-    //     log::warn!("ggml-base.bin is missing.....downloading it from https://www.dropbox.com/s/3jpddk0uoghr0eo/ggml-model-q4_0.bin");
-    //     match crate::thalamus::tools::download("/opt/thalamus/models/llama/30B/ggml-model-q4_0.bin", "https://www.dropbox.com/s/3jpddk0uoghr0eo/ggml-model-q4_0.bin"){
-    //         Ok(_) => {
-    //             log::info!("Stored model in /opt/thalamus/models/");
-    //         },
-    //         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
-    //     }
-    // }
-
-    // // Download quantized 65B llama model from Open Sam Foundation (OSF)
-    // // https://www.dropbox.com/s/ucstzvb0bzlxcyc/ggml-model-q4_0.bin
-    // if !Path::new("/opt/thalamus/models/llama/65B/ggml-model-q4_0.bin").exists(){
-    //     log::warn!("ggml-base.bin is missing.....downloading it from https://www.dropbox.com/s/ucstzvb0bzlxcyc/ggml-model-q4_0.bin");
-    //     match crate::thalamus::tools::download("/opt/thalamus/models/llama/65B/ggml-model-q4_0.bin", "https://www.dropbox.com/s/ucstzvb0bzlxcyc/ggml-model-q4_0.bin"){
-    //         Ok(_) => {
-    //             log::info!("Stored model in /opt/thalamus/models/");
-    //         },
-    //         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to download base whisper model").into())
-    //     }
-    // }
-
+    crate::thalamus::tools::safe_download(
+        "/opt/thalamus/models/llama/7B/ggml-model-q4_0.gguf", 
+        "https://www.dropbox.com/scl/fi/6faxqth8re7dgn1ygwsbr/ggml-model-q4_0.gguf?rlkey=b1ozpsxx6nqz5f6vutva0mlz5&dl=1", 
+        Some("f1c4e91ce7a6f0eaa0f4229caf473c882ad642fa7e30b4b7fb4a1377b76f6d0a"),
+        Some(3825806912)
+    );
 
     Ok(())
 }

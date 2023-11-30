@@ -89,6 +89,11 @@ pub fn install(args: crate::Args) -> Result<()> {
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/tmp directory").into()),
     }
 
+    match crate::thalamus::tools::mkdir("/opt/thalamus/tmp/srgan"){
+        Ok(_) => {},
+        Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/tmp/srgan directory").into()),
+    }
+
     match crate::thalamus::tools::mkdir("/opt/thalamus/fonts"){
         Ok(_) => {},
         Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create /opt/thalamus/fonts directory").into()),
@@ -99,28 +104,45 @@ pub fn install(args: crate::Args) -> Result<()> {
     #[cfg(all(target_os = "macos"))] {
 
         // Install Homebrew
-        match crate::thalamus::tools::dbash("\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""){
-            Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install homebrew").into()),
+        if !Path::new("/opt/homebrew/bin/brew").exists(){
+            match crate::thalamus::tools::dbash("\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install homebrew").into()),
+            }
         }
 
         // Install Miniconda
-        match crate::thalamus::tools::brew_install("miniconda"){
-            Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install miniconda").into()),
+        if !Path::new("/opt/homebrew/bin/conda").exists(){
+            match crate::thalamus::tools::brew_install("miniconda"){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install miniconda").into()),
+            }
         }
 
         // Install openssl@1.1
-        match crate::thalamus::tools::brew_install("openssl@1.1"){
-            Ok(_) => {},
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1").into()),
+        if !Path::new("/opt/homebrew/bin/openssl").exists(){
+            match crate::thalamus::tools::brew_install("openssl@1.1"){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1").into()),
+            }
+        }
+
+        // Install docker
+        // TODO: brew install --cask docker
+        // brew install colima docker
+        // colima start
+        if !Path::new("/opt/homebrew/bin/docker").exists(){
+            match crate::thalamus::tools::brew_install("docker"){
+                Ok(_) => {},
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install docker").into()),
+            }
         }
 
         // Install wget
         if !Path::new("/opt/homebrew/bin/wget").exists(){
             match crate::thalamus::tools::brew_install("wget"){
                 Ok(_) => {},
-                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install openssl@1.1").into()),
+                Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to install wget").into()),
             }
         }
 
@@ -306,11 +328,11 @@ pub fn install_client() -> Result<()> {
     }
 
     if !Path::new("/opt/thalamus/test.wav").exists(){
-        crate::thalamus::tools::download("/opt/thalamus/test.wav", "https://www.dropbox.com/s/j55gxifpi5s62t4/test.wav")?;
+        crate::thalamus::tools::safe_download("/opt/thalamus/test.wav", "https://www.dropbox.com/s/j55gxifpi5s62t4/test.wav?dl=1", None, None);
     }
 
     if !Path::new("/opt/thalamus/test.jpg").exists(){
-        crate::thalamus::tools::download("/opt/thalamus/test.jpg", "https://www.dropbox.com/s/socxvceshvxovpe/test.jpg")?;
+        crate::thalamus::tools::safe_download("/opt/thalamus/test.jpg", "https://www.dropbox.com/s/socxvceshvxovpe/test.jpg?dl=1", None, None);
     }
 
     return Ok(());
@@ -425,9 +447,9 @@ pub fn update_linux_service_file(args: crate::Args){
     data.push_str("After=network-online.target\n\n");
     data.push_str("[Service]\n");
     if args.encrypt{
-        data.push_str(format!("ExecStart=/usr/bin/env LIBTORCH=/opt/thalamus/libtorch LD_LIBRARY_PATH=/opt/thalamus/libtorch/lib: /opt/thalamus/bin/thalamus --lang {} --max-threads {} --http-port {} --p2p-port {} --encrypt --key {}\n", args.lang, args.max_threads, args.http_port, args.p2p_port, args.key).as_str());
+        data.push_str(format!("ExecStart=/usr/bin/env LIBTORCH=/opt/thalamus/libtorch LD_LIBRARY_PATH=/opt/thalamus/libtorch/lib: /opt/thalamus/bin/thalamus --lang {} --max-threads {} --http-port {} --p2p-port {} --encrypt --key {}\n", args.lang, args.max_threads, args.www_port, args.p2p_port, args.key).as_str());
     } else {
-        data.push_str(format!("ExecStart=/usr/bin/env LIBTORCH=/opt/thalamus/libtorch LD_LIBRARY_PATH=/opt/thalamus/libtorch/lib: /opt/thalamus/bin/thalamus --lang {} --max-threads {} --http-port {} --p2p-port {} --key {}\n", args.lang, args.max_threads, args.http_port, args.p2p_port, args.key).as_str());
+        data.push_str(format!("ExecStart=/usr/bin/env LIBTORCH=/opt/thalamus/libtorch LD_LIBRARY_PATH=/opt/thalamus/libtorch/lib: /opt/thalamus/bin/thalamus --lang {} --max-threads {} --http-port {} --p2p-port {} --key {}\n", args.lang, args.max_threads, args.www_port, args.p2p_port, args.key).as_str());
     }
     data.push_str("TimeoutSec=30\n");
     data.push_str("Restart=on-failure\n");
