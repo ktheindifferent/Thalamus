@@ -18,11 +18,15 @@ error_chain! {
         PostError(rouille::input::post::PostError);
         InternalToolsError(crate::thalamus::tools::Error);
         ExternalRequestError(reqwest::Error);
-        TchError(tch::TchError);
         // Postgres(postgres::Error);
         // PostError(rouille::input::post::PostError);
         // RustTubeError(rustube::Error);
         // InternalServiceError(crate::sam::services::Error);
         // SamMemoryError(crate::sam::memory::Error);
+    }
+    
+    #[cfg(feature = "pytorch")]
+    foreign_links {
+        TchError(tch::TchError);
     }
 }

@@ -6,9 +6,9 @@
 // Copyright 2021-2023 The Open Sam Foundation (OSF)
 // Developed by Caleb Mitchell Smith (PixelCoda)
 // Licensed under GPLv3....see LICENSE file.
-// pub mod nst;
 pub mod srgan;
 pub mod ocnn;
+#[cfg(feature = "pytorch")]
 pub mod nst;
 pub mod yolo;
 
@@ -43,6 +43,7 @@ pub fn handle(request: &Request) -> Result<Response, crate::thalamus::http::Erro
         return Ok(crate::thalamus::services::image::srgan::handle(request)?);
     }
 
+    #[cfg(feature = "pytorch")]
     if request.url().contains("/api/services/image/nst"){
         return Ok(crate::thalamus::services::image::nst::handle(request)?);
     }
