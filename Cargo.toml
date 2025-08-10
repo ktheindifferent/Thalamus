@@ -11,6 +11,11 @@ readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+pytorch = ["tch"]
+full = ["pytorch"]
+
 [dependencies]
 serde = { version = "1.0.133", features = ["derive", "rc"] }
 log = "0.4.14"
@@ -32,7 +37,7 @@ simple-dns = "0.5.2"
 libp2p = { version = "0.51.3", features = ["full", "async-std", "tcp", "dns", "websocket", "noise", "mplex", "yamux", "ping", "rendezvous", "identify"] }
 tokio = { version = "1.21.2", features = ["full"] }
 libmdns = "0.7"
-tch = "0.14.0"
+tch = { version = "0.14.0", optional = true }
 titlecase = "2.2.1"
 clap = "4.3.3"
 futures = "0.3.29"

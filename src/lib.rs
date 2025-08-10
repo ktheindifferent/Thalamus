@@ -1148,3 +1148,88 @@ pub struct STTReply {
     pub time: f64,
     pub response_type: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_thalamus_client_new() {
+        let client = ThalamusClient::new();
+        assert_eq!(client.nodes.len(), 0);
+    }
+
+    #[test]
+    fn test_thalamus_node_new() {
+        let node = ThalamusNode::new(
+            "test_pid".to_string(),
+            "1.0.0".to_string(),
+            "192.168.1.1".to_string(),
+            8050,
+        );
+        assert_eq!(node.pid, "test_pid");
+        assert_eq!(node.version, "1.0.0");
+        assert_eq!(node.ipv4, "192.168.1.1");
+        assert_eq!(node.www_port, 8050);
+        assert!(node.jobs.is_empty());
+    }
+
+    #[test]
+    fn test_thalamus_job_new() {
+        let job = ThalamusJob::new("test_job".to_string());
+        assert_eq!(job.job_identifier, "test_job");
+        assert_eq!(job.status, "pending");
+        assert!(!job.oid.is_empty());
+    }
+
+    #[test]
+    fn test_thalamus_node_stats_new() {
+        let stats = ThalamusNodeStats::new();
+        assert_eq!(stats.cpu_usage, 0);
+        assert_eq!(stats.memory_usage, 0);
+        assert_eq!(stats.total_memory, 0);
+        assert_eq!(stats.uptime, 0);
+    }
+
+    #[test]
+    fn test_version_reply() {
+        let version = VersionReply {
+            version: "1.0.0".to_string(),
+            pid: "test_pid".to_string(),
+        };
+        assert_eq!(version.version, "1.0.0");
+        assert_eq!(version.pid, "test_pid");
+    }
+
+    #[test]
+    fn test_stt_reply() {
+        let reply = STTReply {
+            text: "Hello World".to_string(),
+            time: 1.5,
+            response_type: Some("transcription".to_string()),
+        };
+        assert_eq!(reply.text, "Hello World");
+        assert_eq!(reply.time, 1.5);
+        assert_eq!(reply.response_type, Some("transcription".to_string()));
+    }
+
+    #[test]
+    fn test_args_default() {
+        // Test that Args struct can be created with defaults
+        // This would require implementing Default trait or using builder pattern
+        let args = Args {
+            lang: "en".to_string(),
+            max_threads: 6,
+            www_port: 8050,
+            p2p_port: 62649,
+            encrypt: false,
+            key: "thalamus".to_string(),
+        };
+        assert_eq!(args.lang, "en");
+        assert_eq!(args.max_threads, 6);
+        assert_eq!(args.www_port, 8050);
+        assert_eq!(args.p2p_port, 62649);
+        assert!(!args.encrypt);
+        assert_eq!(args.key, "thalamus");
+    }
+}
